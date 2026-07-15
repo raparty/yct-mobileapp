@@ -16,20 +16,13 @@ dependencies:
   # Open PDFs in native device viewer
   url_launcher: ^6.2.5
 
-  # Audio streaming
-  just_audio: ^0.9.36
-  audio_service: ^0.18.13
-
-  # Caching
-  cached_network_image: ^3.3.1
-
   # Share sheet
   share_plus: ^7.2.2
 
-  # Google fonts (Noto Sans Telugu)
-  google_fonts: ^6.2.1
+  # Caching images
+  cached_network_image: ^3.3.1
 
-  # Local storage for bookmarks (no login needed)
+  # Local storage for bookmarks
   shared_preferences: ^2.2.2
 
   cupertino_icons: ^1.0.6
