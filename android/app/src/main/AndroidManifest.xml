@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Internet access for Google Sheets & Drive streaming -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Must be directly inside <manifest>, not inside <application> -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND"/>
+            <data android:mimeType="*/*"/>
+        </intent>
+    </queries>
 
     <application
         android:label="YCT"
@@ -30,22 +45,6 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-
-        <!-- Required for url_launcher to open links -->
-        <queries>
-            <intent>
-                <action android:name="android.intent.action.VIEW"/>
-                <data android:scheme="https"/>
-            </intent>
-            <intent>
-                <action android:name="android.intent.action.DIAL"/>
-                <data android:scheme="tel"/>
-            </intent>
-            <intent>
-                <action android:name="android.intent.action.SEND"/>
-                <data android:mimeType="*/*"/>
-            </intent>
-        </queries>
 
         <meta-data
             android:name="flutterEmbedding"
