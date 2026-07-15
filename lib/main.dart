@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────
-// YCT App — Main Entry Point
-// ─────────────────────────────────────────
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/constants.dart';
@@ -22,7 +18,6 @@ void main() {
 
 class YCTApp extends StatelessWidget {
   const YCTApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -30,18 +25,9 @@ class YCTApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          primary: AppColors.primary,
-          background: AppColors.bg,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary, primary: AppColors.primary, background: AppColors.bg),
         scaffoldBackgroundColor: AppColors.bg,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        fontFamily: 'Roboto',
+        appBarTheme: const AppBarTheme(backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 0),
       ),
       home: const MainShell(),
     );
@@ -50,61 +36,32 @@ class YCTApp extends StatelessWidget {
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
-
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
-  int _currentIndex = 0;
-
+  int _idx = 0;
   final List<Widget> _screens = const [
-    HomeScreen(),
-    LibraryScreen(),
-    AudioScreen(),
-    CentersScreen(),
-    MoreScreen(),
+    HomeScreen(), LibraryScreen(), AudioScreen(), CentersScreen(), MoreScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _idx, children: _screens),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
+        selectedIndex: _idx,
+        onDestinationSelected: (i) => setState(() => _idx = i),
         backgroundColor: Colors.white,
         indicatorColor: AppColors.primaryLight,
         elevation: 8,
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: AppColors.primary),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book, color: AppColors.primary),
-            label: 'Library',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.headphones_outlined),
-            selectedIcon: Icon(Icons.headphones, color: AppColors.primary),
-            label: 'Audio',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.location_on_outlined),
-            selectedIcon: Icon(Icons.location_on, color: AppColors.primary),
-            label: 'Centers',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.more_horiz),
-            selectedIcon: Icon(Icons.more_horiz, color: AppColors.primary),
-            label: 'More',
-          ),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: AppColors.primary), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book, color: AppColors.primary), label: 'Library'),
+          NavigationDestination(icon: Icon(Icons.headphones_outlined), selectedIcon: Icon(Icons.headphones, color: AppColors.primary), label: 'Audio'),
+          NavigationDestination(icon: Icon(Icons.location_on_outlined), selectedIcon: Icon(Icons.location_on, color: AppColors.primary), label: 'Centers'),
+          NavigationDestination(icon: Icon(Icons.more_horiz), selectedIcon: Icon(Icons.more_horiz, color: AppColors.primary), label: 'More'),
         ],
       ),
     );
