@@ -1,20 +1,42 @@
-// Project-level build.gradle
-// Plugin management is handled in settings.gradle
-// This file intentionally left minimal
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
+android {
+    namespace "org.yogaconsciousness.app"
+
+    compileSdk 34
+
+    ndkVersion "25.1.8937393"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId "org.yogaconsciousness.app"
+
+        minSdk 21
+        targetSdk 34
+
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
     }
 }
 
-rootProject.buildDir = "../build"
-subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-    project.evaluationDependsOn(":app")
-}
-
-tasks.register("clean", Delete) {
-    delete rootProject.buildDir
+flutter {
+    source "../.."
 }
