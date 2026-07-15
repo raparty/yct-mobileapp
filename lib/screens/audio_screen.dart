@@ -1,9 +1,13 @@
+// Audio screen — v1 placeholder
+// Audio packages removed to simplify build.
+// Will be added in v2 when discourses are organised.
+
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
 import '../core/sheets_service.dart';
+import 'package:share_plus/share_plus.dart';
 
 class AudioScreen extends StatefulWidget {
   const AudioScreen({super.key});
@@ -15,26 +19,11 @@ class AudioScreen extends StatefulWidget {
 class _AudioScreenState extends State<AudioScreen> {
   List<AudioTrack> _tracks = [];
   bool _loading = true;
-  AudioTrack? _playing;
-  final AudioPlayer _player = AudioPlayer();
-  bool _isPlaying = false;
-  Duration _position = Duration.zero;
-  Duration _duration = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _load();
-    _player.positionStream.listen((p) {
-      if (mounted) setState(() => _position = p);
-    });
-    _player.durationStream.listen((d) {
-      if (mounted) setState(() => _duration = d ?? Duration.zero);
-    });
-    _player.playerStateStream.listen((state) {
-      if (mounted) setState(() =>
-        _isPlaying = state.playing);
-    });
   }
 
   Future<void> _load() async {
@@ -43,19 +32,11 @@ class _AudioScreenState extends State<AudioScreen> {
   }
 
   Future<void> _playTrack(AudioTrack track) async {
-    if (_playing?.id == track.id) {
-      _isPlaying ? _player.pause() : _player.play();
-      return;
+    // Open MP3 directly in device's native player / browser
+    final uri = Uri.parse(track.mp3Url);
+    if (await canLaunchUrl(uri)) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
     }
-    setState(() => _playing = track);
-    await _player.setUrl(track.mp3Url);
-    _player.play();
-  }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
   }
 
   @override
@@ -69,102 +50,19 @@ class _AudioScreenState extends State<AudioScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(
               color: AppColors.primary))
-          : Column(
-              children: [
-                // Mini player (shows when something is playing)
-                if (_playing != null) _buildMiniPlayer(),
-                Expanded(
-                  child: _tracks.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _tracks.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (ctx, i) =>
-                              _TrackCard(
-                                track: _tracks[i],
-                                isPlaying: _playing?.id == _tracks[i].id &&
-                                    _isPlaying,
-                                onTap: () => _playTrack(_tracks[i]),
-                                onShare: () => Share.share(
-                                  '${_tracks[i].title}\n${_tracks[i].mp3Url}'),
-                              ),
-                        ),
+          : _tracks.isEmpty
+              ? _buildEmptyState()
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _tracks.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (ctx, i) => _TrackCard(
+                    track: _tracks[i],
+                    onTap: () => _playTrack(_tracks[i]),
+                    onShare: () => Share.share(
+                      '${_tracks[i].title}\n${_tracks[i].mp3Url}'),
+                  ),
                 ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildMiniPlayer() {
-    final track = _playing!;
-    return Container(
-      color: AppColors.primaryDark,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Column(
-        children: [
-          Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Icon(Icons.music_note,
-                  color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(track.title,
-                    style: const TextStyle(color: Colors.white,
-                        fontSize: 12, fontWeight: FontWeight.w500),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                  if (track.titleTelugu.isNotEmpty)
-                    Text(track.titleTelugu,
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 10),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.white, size: 28),
-              onPressed: () => _isPlaying
-                  ? _player.pause()
-                  : _player.play(),
-            ),
-            IconButton(
-              icon: const Icon(Icons.stop, color: Colors.white, size: 22),
-              onPressed: () {
-                _player.stop();
-                setState(() { _playing = null; _isPlaying = false; });
-              },
-            ),
-          ]),
-          // Progress bar
-          if (_duration.inSeconds > 0)
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                trackHeight: 2,
-              ),
-              child: Slider(
-                value: _position.inSeconds.toDouble(),
-                max: _duration.inSeconds.toDouble(),
-                activeColor: AppColors.teal,
-                inactiveColor: Colors.white.withOpacity(0.3),
-                onChanged: (v) => _player.seek(Duration(seconds: v.toInt())),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
@@ -175,20 +73,44 @@ class _AudioScreenState extends State<AudioScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.headphones_outlined,
-                size: 64, color: AppColors.textMuted),
-            const SizedBox(height: 16),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.headphones_outlined,
+                  size: 40, color: AppColors.primary),
+            ),
+            const SizedBox(height: 20),
             const Text('Audio Coming Soon',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
                   color: AppColors.textDark)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             const Text(
               'Gurudev\'s discourses are being organised and '
-              'will be available here soon. Drop MP3s in Google Drive '
-              'and add rows to the audio tab in your Google Sheet.',
+              'will be available here soon.\n\n'
+              'To add audio: upload MP3s to Google Drive and '
+              'add rows to the audio tab in your Google Sheet.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13,
                   color: AppColors.textLight, height: 1.6)),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () => launchUrl(
+                Uri.parse(AppStrings.website),
+                mode: LaunchMode.externalApplication),
+              icon: const Icon(Icons.language, color: AppColors.primary),
+              label: const Text('Visit Website',
+                style: TextStyle(color: AppColors.primary)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
           ],
         ),
       ),
@@ -198,13 +120,11 @@ class _AudioScreenState extends State<AudioScreen> {
 
 class _TrackCard extends StatelessWidget {
   final AudioTrack track;
-  final bool isPlaying;
   final VoidCallback onTap;
   final VoidCallback onShare;
 
   const _TrackCard({
     required this.track,
-    required this.isPlaying,
     required this.onTap,
     required this.onShare,
   });
@@ -213,10 +133,9 @@ class _TrackCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isPlaying ? AppColors.primaryLight : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: isPlaying ? AppColors.primary : AppColors.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
@@ -225,15 +144,12 @@ class _TrackCard extends StatelessWidget {
           onTap: onTap,
           child: Container(
             width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: isPlaying ? AppColors.primary : AppColors.primaryLight,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryLight,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              isPlaying ? Icons.pause : Icons.play_arrow,
-              color: isPlaying ? Colors.white : AppColors.primary,
-              size: 24,
-            ),
+            child: const Icon(Icons.play_arrow,
+                color: AppColors.primary, size: 24),
           ),
         ),
         title: Text(track.title,
@@ -275,6 +191,7 @@ class _TrackCard extends StatelessWidget {
               color: AppColors.textMuted, size: 20),
           onPressed: onShare,
         ),
+        onTap: onTap,
       ),
     );
   }
