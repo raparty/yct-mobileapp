@@ -9,17 +9,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Firebase — Firestore for content database
+  firebase_core: ^3.3.0
+  cloud_firestore: ^5.3.0
+
+  # Networking
   http: ^1.2.0
+
+  # PDF viewer
+  webview_flutter: ^4.4.4
+
+  # Audio player
+  audioplayers: ^6.0.0
+
+  # Utilities
   url_launcher: ^6.2.5
   share_plus: ^7.2.2
   shared_preferences: ^2.2.2
   cupertino_icons: ^1.0.6
-
-  # WebView for Google Drive PDF preview
-  webview_flutter: ^4.4.4
-
-  # In-app audio player — streams MP3 directly
-  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:

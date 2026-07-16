@@ -1,18 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/constants.dart';
+import 'core/firestore_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/audio_screen.dart';
 import 'screens/centers_screen.dart';
 import 'screens/more_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Init Firebase
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: 'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8',
+      appId: '1:881638212469:android:placeholder',
+      messagingSenderId: '881638212469',
+      projectId: 'yct-app',
+      storageBucket: 'yct-app.firebasestorage.app',
+    ),
+  );
+
+  // Enable Firestore offline cache
+  FirestoreService.init();
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: AppColors.primaryDark,
     statusBarIconBrightness: Brightness.light,
   ));
+
   runApp(const YCTApp());
 }
 
@@ -25,9 +43,14 @@ class YCTApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary, primary: AppColors.primary, background: AppColors.bg),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          primary: AppColors.primary,
+          background: AppColors.bg),
         scaffoldBackgroundColor: AppColors.bg,
-        appBarTheme: const AppBarTheme(backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 0),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white, elevation: 0),
       ),
       home: const MainShell(),
     );
@@ -42,7 +65,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _idx = 0;
-  final List<Widget> _screens = const [
+  final _screens = const [
     HomeScreen(), LibraryScreen(), AudioScreen(), CentersScreen(), MoreScreen(),
   ];
 

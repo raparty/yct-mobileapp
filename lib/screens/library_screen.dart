@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
-import '../core/sheets_service.dart';
+import '../core/firestore_service.dart';
 import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
 import 'book_detail_screen.dart';
@@ -34,8 +34,8 @@ class _LibraryScreenState extends State<LibraryScreen>
 
   Future<void> _load() async {
     final results = await Future.wait([
-      SheetsService.fetchMagazines(),
-      SheetsService.fetchBooks(),
+      FirestoreService.fetchMagazines(),
+      FirestoreService.fetchBooks(),
     ]);
     if (mounted) {
       setState(() {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
-import '../core/sheets_service.dart';
+import '../core/firestore_service.dart';
 import 'issue_detail_screen.dart';
 
 class MagazineArchiveScreen extends StatefulWidget {
@@ -24,7 +24,7 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
   }
 
   Future<void> _load() async {
-    final mags = await SheetsService.fetchMagazines();
+    final mags = await FirestoreService.fetchMagazines();
     if (mounted) {
       setState(() {
         _all = mags;
