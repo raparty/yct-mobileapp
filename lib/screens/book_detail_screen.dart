@@ -44,7 +44,7 @@ class BookDetailScreen extends StatelessWidget {
           ],
           SizedBox(width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: book.hasPdf ? () => Navigator.push(context,
+              onPressed: book.pdfUrl.isNotEmpty ? () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => PdfViewerScreen(title: book.title, pdfUrl: book.pdfUrl))) : null,
               icon: const Icon(Icons.menu_book, color: Colors.white),
               label: const Text('Read this book',
