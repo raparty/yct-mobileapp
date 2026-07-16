@@ -48,6 +48,9 @@ class Magazine {
   }
 
   bool get hasPdf => pdfUrl.isNotEmpty;
+
+  // Alias for backward compatibility
+  String get viewUrl => pdfUrl;
 }
 
 class Book {
@@ -143,4 +146,10 @@ class AppSettings {
       whatsappNumber:   d['whatsapp_number']    as String? ?? AppSettings.defaults().whatsappNumber,
     );
   }
+}
+
+// Extension to add missing getters for backward compatibility
+extension MagazineExtension on Magazine {
+  String get viewUrl => pdfUrl;
+  String get titleEnglish_ => titleEnglish;
 }

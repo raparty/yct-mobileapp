@@ -37,7 +37,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   }
 
   void _openPdf() {
-    final url = widget.magazine.viewUrl;
+    final url = widget.magazine.pdfUrl;
     if (url.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('PDF not available yet — add link to Google Sheet')));
@@ -52,7 +52,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
   void _share() {
     final mag = widget.magazine;
-    Share.share('${AppStrings.magazineName} — ${mag.titleEnglish}\n${mag.viewUrl}\n\n${AppStrings.website}');
+    Share.share('${AppStrings.magazineName} — ${mag.titleEnglish}\n${mag.pdfUrl}\n\n${AppStrings.website}');
   }
 
   @override
