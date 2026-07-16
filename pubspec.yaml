@@ -18,10 +18,8 @@ dependencies:
   # WebView for Google Drive PDF preview
   webview_flutter: ^4.4.4
 
-  # PDF download + view
-  flutter_pdfview: ^1.3.2
-  dio: ^5.4.1
-  path_provider: ^2.1.2
+  # In-app audio player — streams MP3 directly
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:

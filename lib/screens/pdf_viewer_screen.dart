@@ -1,5 +1,5 @@
-// PDF Viewer using Google Drive's built-in preview
-// More reliable than downloading raw PDF bytes
+// PDF Viewer — uses Google Drive's embedded preview iframe
+// The key is adding &rm=minimal to suppress login prompts
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,15 +7,9 @@ import '../core/constants.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String title;
-  final String pdfUrl; // Raw Drive share URL
-  final String? directUrl; // Direct download URL
+  final String pdfUrl;
 
-  const PdfViewerScreen({
-    super.key,
-    required this.title,
-    required this.pdfUrl,
-    this.directUrl,
-  });
+  const PdfViewerScreen({super.key, required this.title, required this.pdfUrl});
 
   @override
   State<PdfViewerScreen> createState() => _PdfViewerScreenState();
@@ -24,54 +18,80 @@ class PdfViewerScreen extends StatefulWidget {
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final WebViewController _controller;
   bool _loading = true;
-  bool _error = false;
+  int _loadAttempt = 0;
 
-  // Extract Google Drive file ID
-  String? get _driveFileId {
+  // Extract Google Drive file ID from any URL format
+  String? get _driveId {
     final url = widget.pdfUrl;
-    var m = RegExp(r'/file/d/([a-zA-Z0-9_-]+)').firstMatch(url);
+    var m = RegExp(r'/file/d/([a-zA-Z0-9_-]{10,})').firstMatch(url);
     if (m != null) return m.group(1);
-    m = RegExp(r'[?&]id=([a-zA-Z0-9_-]+)').firstMatch(url);
+    m = RegExp(r'[?&]id=([a-zA-Z0-9_-]{10,})').firstMatch(url);
     if (m != null) return m.group(1);
     return null;
   }
 
-  // Google Drive embed/preview URL — renders PDF natively without downloading
-  String get _previewUrl {
-    final id = _driveFileId;
-    if (id != null) {
-      return 'https://drive.google.com/file/d/$id/preview';
-    }
-    // Fallback: Google Docs viewer
-    return 'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.pdfUrl)}&embedded=true';
+  // Use Google Drive's built-in PDF preview — no auth needed for public files
+  String get _embedUrl {
+    final id = _driveId;
+    if (id == null) return widget.pdfUrl;
+    // The preview URL with rm=minimal removes the Google Drive UI chrome
+    return 'https://drive.google.com/file/d/$id/preview?rm=minimal';
+  }
+
+  String get _viewUrl {
+    final id = _driveId;
+    if (id != null) return 'https://drive.google.com/file/d/$id/view';
+    return widget.pdfUrl;
   }
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageStarted: (_) => setState(() { _loading = true; _error = false; }),
-        onPageFinished: (_) => setState(() => _loading = false),
-        onWebResourceError: (_) => setState(() { _loading = false; _error = true; }),
-      ))
-      ..loadRequest(Uri.parse(_previewUrl));
+    _initWebView();
   }
 
-  Future<void> _openExternal() async {
-    final id = _driveFileId;
-    final url = id != null
-        ? 'https://drive.google.com/file/d/$id/view'
-        : widget.pdfUrl;
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+  void _initWebView() {
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (_) => setState(() => _loading = true),
+        onPageFinished: (_) => setState(() => _loading = false),
+        onWebResourceError: (e) {
+          // Ignore minor resource errors, only flag fatal ones
+          if (e.isForMainFrame == true) {
+            setState(() => _loading = false);
+          }
+        },
+        onNavigationRequest: (req) {
+          // Allow Google domains, block everything else to prevent redirects
+          final host = Uri.tryParse(req.url)?.host ?? '';
+          if (host.contains('google.com') || host.contains('gstatic.com') || host.contains('googleapis.com')) {
+            return NavigationDecision.navigate;
+          }
+          // Open external links in browser
+          launchUrl(Uri.parse(req.url), mode: LaunchMode.externalApplication);
+          return NavigationDecision.prevent;
+        },
+      ))
+      ..loadRequest(Uri.parse(_embedUrl));
+  }
+
+  void _retry() {
+    setState(() { _loading = true; _loadAttempt++; });
+    _controller.loadRequest(Uri.parse(_embedUrl));
+  }
+
+  void _openBrowser() {
+    launchUrl(Uri.parse(_viewUrl), mode: LaunchMode.externalApplication);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
         title: Text(widget.title,
           style: const TextStyle(fontSize: 15, color: Colors.white),
@@ -79,62 +99,47 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         backgroundColor: AppColors.primaryDark,
         actions: [
           IconButton(
-            icon: const Icon(Icons.open_in_new, color: Colors.white),
+            icon: const Icon(Icons.open_in_browser, color: Colors.white),
             tooltip: 'Open in browser',
-            onPressed: _openExternal,
+            onPressed: _openBrowser,
           ),
         ],
       ),
       body: Stack(children: [
         WebViewWidget(controller: _controller),
         if (_loading)
-          const Center(child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: AppColors.primaryMid),
-              SizedBox(height: 16),
-              Text('Loading PDF...', style: TextStyle(color: Colors.white70)),
-              SizedBox(height: 6),
-              Text('Fetching from Google Drive',
-                style: TextStyle(color: Colors.white38, fontSize: 11)),
-            ])),
-        if (_error)
-          Center(child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.error_outline, color: Colors.orange, size: 48),
-              const SizedBox(height: 16),
-              const Text('Could not load PDF.',
-                style: TextStyle(color: Colors.white70, fontSize: 16)),
-              const SizedBox(height: 8),
-              const Text(
-                'Make sure the Google Drive file is shared publicly.\n'
-                'Go to Drive → right-click file → Share → Anyone with link → Viewer',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white38, fontSize: 12, height: 1.5)),
-              const SizedBox(height: 20),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() { _loading = true; _error = false; });
-                    _controller.reload();
-                  },
-                  icon: const Icon(Icons.refresh, size: 16),
-                  label: const Text('Retry'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: _openExternal,
-                  icon: const Icon(Icons.open_in_new, size: 16, color: AppColors.teal),
-                  label: const Text('Open in browser',
-                    style: TextStyle(color: AppColors.teal)),
-                  style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.teal)),
-                ),
-              ]),
-            ]),
-          )),
+          Container(
+            color: Colors.grey[900],
+            child: const Center(child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: AppColors.primaryMid),
+                SizedBox(height: 16),
+                Text('Loading PDF...', style: TextStyle(color: Colors.white70, fontSize: 15)),
+                SizedBox(height: 6),
+                Text('First load may take 10-15 seconds',
+                  style: TextStyle(color: Colors.white38, fontSize: 11)),
+              ],
+            )),
+          ),
       ]),
+      bottomNavigationBar: Container(
+        color: AppColors.primaryDark,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(children: [
+          const Icon(Icons.info_outline, color: Colors.white38, size: 14),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text('File must be publicly shared in Google Drive',
+              style: TextStyle(color: Colors.white38, fontSize: 11))),
+          TextButton(
+            onPressed: _retry,
+            child: const Text('Reload', style: TextStyle(color: AppColors.teal, fontSize: 12))),
+          TextButton(
+            onPressed: _openBrowser,
+            child: const Text('Browser', style: TextStyle(color: AppColors.teal, fontSize: 12))),
+        ]),
+      ),
     );
   }
 }

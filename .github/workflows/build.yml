@@ -11,7 +11,6 @@ jobs:
   build-android:
     name: Build Android (APK + AAB)
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -30,10 +29,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build release APK (split by ABI — small files)
+      - name: Build release APK (split by ABI)
         run: flutter build apk --release --split-per-abi
 
-      - name: Build App Bundle (AAB — for Play Store)
+      - name: Build App Bundle (AAB for Play Store)
         run: flutter build appbundle --release
 
       - name: Upload ARM64 APK (modern phones)
@@ -59,9 +58,8 @@ jobs:
 
   # ── iOS ───────────────────────────────────────────────────
   build-ios:
-    name: Build iOS IPA
+    name: Build iOS (unsigned)
     runs-on: macos-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -76,22 +74,26 @@ jobs:
 
       - name: Install CocoaPods
         run: |
-          cd ios
-          pod install --repo-update
+          cd ios && pod install --repo-update
 
-      - name: Build iOS (no code sign)
+      - name: Build iOS (no codesign — simulator/sideload)
         run: flutter build ios --release --no-codesign
+        continue-on-error: true  # Signing error is expected without Apple cert
 
-      - name: Package IPA
+      - name: Package Runner.app as zip
         run: |
-          mkdir -p build/ios/ipa/Payload
-          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
-          cd build/ios/ipa
-          zip -r ../YCT-app.ipa Payload/
+          if [ -d "build/ios/iphoneos/Runner.app" ]; then
+            cd build/ios/iphoneos
+            zip -r Runner-unsigned.zip Runner.app
+            echo "IOS_BUILD_SUCCESS=true" >> $GITHUB_ENV
+          else
+            echo "IOS_BUILD_SUCCESS=false" >> $GITHUB_ENV
+          fi
 
-      - name: Upload IPA
+      - name: Upload iOS unsigned build
+        if: env.IOS_BUILD_SUCCESS == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: yct-ios-ipa
-          path: build/ios/YCT-app.ipa
+          name: yct-ios-unsigned
+          path: build/ios/iphoneos/Runner-unsigned.zip
           retention-days: 30
