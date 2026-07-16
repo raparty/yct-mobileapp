@@ -11,8 +11,6 @@ import 'screens/more_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Init Firebase
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: 'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8',
@@ -22,15 +20,11 @@ void main() async {
       storageBucket: 'yct-app.firebasestorage.app',
     ),
   );
-
-  // Enable Firestore offline cache
   FirestoreService.init();
-
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: AppColors.primaryDark,
     statusBarIconBrightness: Brightness.light,
   ));
-
   runApp(const YCTApp());
 }
 
@@ -43,14 +37,9 @@ class YCTApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          primary: AppColors.primary,
-          background: AppColors.bg),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary, primary: AppColors.primary, background: AppColors.bg),
         scaffoldBackgroundColor: AppColors.bg,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white, elevation: 0),
+        appBarTheme: const AppBarTheme(backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 0),
       ),
       home: const MainShell(),
     );
@@ -65,14 +54,21 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _idx = 0;
-  final _screens = const [
-    HomeScreen(), LibraryScreen(), AudioScreen(), CentersScreen(), MoreScreen(),
-  ];
+
+  void _switchTab(int i) => setState(() => _idx = i);
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(onSwitchTab: _switchTab),
+      const LibraryScreen(),
+      const AudioScreen(),
+      const CentersScreen(),
+      const MoreScreen(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _idx, children: _screens),
+      body: IndexedStack(index: _idx, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _idx,
         onDestinationSelected: (i) => setState(() => _idx = i),

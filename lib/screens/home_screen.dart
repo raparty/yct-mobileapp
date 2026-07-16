@@ -7,8 +7,13 @@ import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
 import 'gurudev_screen.dart';
 
+// Callback to switch main tab from home screen
+typedef TabSwitcher = void Function(int index);
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final TabSwitcher? onSwitchTab;
+  const HomeScreen({super.key, this.onSwitchTab});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -36,6 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  void _switchTab(int i) {
+    if (widget.onSwitchTab != null) widget.onSwitchTab!(i);
   }
 
   @override
@@ -94,7 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(12),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.2))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
@@ -119,15 +129,22 @@ class _HomeScreenState extends State<HomeScreen> {
     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMid, letterSpacing: 0.5));
 
   Widget _quickGrid(BuildContext context) => GridView.count(
-    crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+    crossAxisCount: 2, shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
     crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.6,
     children: [
-      _QuickCard('Publications', 'Books & magazines', Icons.menu_book, AppColors.primaryLight, AppColors.primary,
+      _QuickCard('Publications', 'Books & magazines',
+        Icons.menu_book, AppColors.primaryLight, AppColors.primary,
         () => Navigator.push(context, MaterialPageRoute(builder: (_) => MagazineArchiveScreen()))),
-      _QuickCard('About Gurudev', 'Life & teachings', Icons.self_improvement, const Color(0xFFE6F1FB), AppColors.blue,
+      _QuickCard('About Gurudev', 'Life & teachings',
+        Icons.self_improvement, const Color(0xFFE6F1FB), AppColors.blue,
         () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GurudevScreen()))),
-      _QuickCard('Centers', 'Find us near you', Icons.location_on, AppColors.amberLight, AppColors.amber, () {}),
-      _QuickCard('Audio', 'Discourses & talks', Icons.headphones, const Color(0xFFEEEDFE), AppColors.purple, () {}),
+      _QuickCard('Centers', 'Find us near you',
+        Icons.location_on, AppColors.amberLight, AppColors.amber,
+        () => _switchTab(3)), // Centers tab index 3
+      _QuickCard('Audio', 'Discourses & talks',
+        Icons.headphones, const Color(0xFFEEEDFE), AppColors.purple,
+        () => _switchTab(2)), // Audio tab index 2
     ],
   );
 
@@ -137,8 +154,8 @@ class _HomeScreenState extends State<HomeScreen> {
     child: const Column(children: [
       Icon(Icons.menu_book_outlined, color: AppColors.textMuted, size: 36),
       SizedBox(height: 8),
-      Text('Upload magazines via the admin page to see them here',
-        textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMid, fontSize: 12)),
+      Text('Upload magazines via the admin page', textAlign: TextAlign.center,
+        style: TextStyle(color: AppColors.textMid, fontSize: 12)),
     ]));
 
   Widget _latestMags() => SizedBox(
@@ -178,7 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ]),
               ])),
             const SizedBox(height: 4),
-            Text(mag.titleTelugu, style: const TextStyle(fontSize: 10, color: AppColors.textDark), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(mag.titleTelugu, style: const TextStyle(fontSize: 10, color: AppColors.textDark),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
             if (i == 0) Container(
               margin: const EdgeInsets.only(top: 2),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -217,7 +235,8 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _QuickCard extends StatelessWidget {
-  final String title, sub; final IconData icon; final Color bg, fg; final VoidCallback onTap;
+  final String title, sub; final IconData icon;
+  final Color bg, fg; final VoidCallback onTap;
   const _QuickCard(this.title, this.sub, this.icon, this.bg, this.fg, this.onTap);
   @override
   Widget build(BuildContext context) => GestureDetector(
@@ -226,7 +245,8 @@ class _QuickCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(width: 32, height: 32, decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+        Container(width: 32, height: 32,
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, color: fg, size: 18)),
         const Spacer(),
         Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark)),
