@@ -5,8 +5,7 @@ import '../core/constants.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String title;
-  final String pdfUrl; // Google Drive file share URL
-
+  final String pdfUrl;
   const PdfViewerScreen({super.key, required this.title, required this.pdfUrl});
 
   @override
@@ -17,99 +16,29 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final WebViewController _ctrl;
   bool _loading = true;
 
-  // Extract file ID from any Drive URL format
-  String? get _id {
-    final u = widget.pdfUrl;
-    // https://drive.google.com/file/d/FILE_ID/view
-    var m = RegExp(r'/file/d/([a-zA-Z0-9_-]{10,})').firstMatch(u);
-    if (m != null) return m.group(1);
-    // https://drive.google.com/open?id=FILE_ID
-    m = RegExp(r'[?&]id=([a-zA-Z0-9_-]{10,})').firstMatch(u);
-    if (m != null) return m.group(1);
-    return null;
-  }
-
-  bool get _isFolder => widget.pdfUrl.contains('/folders/');
-  bool get _hasPdf => _id != null && !_isFolder;
-
-  // Google Drive PDF preview — renders natively, no download needed
-  String get _previewUrl => 'https://drive.google.com/file/d/$_id/preview?rm=minimal';
+  // Use Google Docs viewer to render any PDF URL — works with R2, Drive, anything
+  String get _viewerUrl =>
+      'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.pdfUrl)}&embedded=true';
 
   @override
   void initState() {
     super.initState();
     _ctrl = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent('Mozilla/5.0 (Linux; Android 11; Mobile) AppleWebKit/537.36 '
+      ..setUserAgent('Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 '
           '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (_) => setState(() => _loading = true),
         onPageFinished: (_) => setState(() => _loading = false),
-        onWebResourceError: (e) { if (e.isForMainFrame == true) setState(() => _loading = false); },
-        onNavigationRequest: (req) {
-          final host = Uri.tryParse(req.url)?.host ?? '';
-          if (host.contains('google.com') || host.contains('gstatic.com')) {
-            return NavigationDecision.navigate;
-          }
-          launchUrl(Uri.parse(req.url), mode: LaunchMode.externalApplication);
-          return NavigationDecision.prevent;
+        onWebResourceError: (e) {
+          if (e.isForMainFrame == true) setState(() => _loading = false);
         },
-      ));
-
-    if (_hasPdf) {
-      _ctrl.loadRequest(Uri.parse(_previewUrl));
-    }
+      ))
+      ..loadRequest(Uri.parse(_viewerUrl));
   }
 
   @override
   Widget build(BuildContext context) {
-    // Show helpful error if URL is a folder or invalid
-    if (!_hasPdf) {
-      return Scaffold(
-        backgroundColor: AppColors.bg,
-        appBar: AppBar(title: Text(widget.title), backgroundColor: AppColors.primaryDark),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.link_off, size: 56, color: AppColors.textMuted),
-            const SizedBox(height: 20),
-            const Text('PDF link needs updating',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('How to fix:', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                const Text(
-                  '1. Go to Google Drive\n'
-                  '2. Right-click the PDF file (not a folder)\n'
-                  '3. Click "Share"\n'
-                  '4. Set to "Anyone with link → Viewer"\n'
-                  '5. Click "Copy link"\n'
-                  '6. Paste in the pdf_url column in your Google Sheet\n\n'
-                  'The link should look like:\n',
-                  style: TextStyle(fontSize: 12, height: 1.6)),
-                SelectableText(
-                  'https://drive.google.com/file/d/FILE_ID/view',
-                  style: TextStyle(fontSize: 11, color: AppColors.primary,
-                      fontFamily: 'monospace', fontWeight: FontWeight.w600)),
-              ])),
-            const SizedBox(height: 20),
-            const Text('Current URL in your Sheet:',
-              style: TextStyle(color: AppColors.textMid, fontSize: 12)),
-            const SizedBox(height: 6),
-            SelectableText(widget.pdfUrl,
-              style: const TextStyle(fontSize: 10, color: Colors.red, height: 1.4)),
-          ]),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
@@ -120,10 +49,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.open_in_browser, color: Colors.white),
-            tooltip: 'Open in browser',
-            onPressed: () => launchUrl(
-              Uri.parse('https://drive.google.com/file/d/$_id/view'),
-              mode: LaunchMode.externalApplication)),
+            onPressed: () => launchUrl(Uri.parse(widget.pdfUrl),
+                mode: LaunchMode.externalApplication)),
         ],
       ),
       body: Stack(children: [
@@ -138,7 +65,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 SizedBox(height: 16),
                 Text('Loading PDF...', style: TextStyle(color: Colors.white70, fontSize: 15)),
                 SizedBox(height: 6),
-                Text('Using Google Drive preview', style: TextStyle(color: Colors.white38, fontSize: 11)),
+                Text('Using Google Docs viewer', style: TextStyle(color: Colors.white38, fontSize: 11)),
               ]))),
       ]),
       bottomNavigationBar: Container(
@@ -147,16 +74,14 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         child: Row(children: [
           const Icon(Icons.info_outline, color: Colors.white38, size: 14),
           const SizedBox(width: 6),
-          const Expanded(
-            child: Text('PDF must be publicly shared in Drive',
-              style: TextStyle(color: Colors.white38, fontSize: 11))),
+          const Expanded(child: Text('Powered by Cloudflare R2',
+            style: TextStyle(color: Colors.white38, fontSize: 11))),
           TextButton(
             onPressed: () { setState(() => _loading = true); _ctrl.reload(); },
             child: const Text('Reload', style: TextStyle(color: AppColors.teal, fontSize: 12))),
           TextButton(
-            onPressed: () => launchUrl(
-              Uri.parse('https://drive.google.com/file/d/$_id/view'),
-              mode: LaunchMode.externalApplication),
+            onPressed: () => launchUrl(Uri.parse(widget.pdfUrl),
+                mode: LaunchMode.externalApplication),
             child: const Text('Browser', style: TextStyle(color: AppColors.teal, fontSize: 12))),
         ]),
       ),
