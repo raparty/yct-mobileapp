@@ -16,9 +16,10 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final WebViewController _ctrl;
   bool _loading = true;
 
-  // Use Google Docs viewer to render any PDF URL — works with R2, Drive, anything
+  // Use Google Docs viewer — renders any public PDF URL including R2
+  // Append timestamp to avoid cache issues
   String get _viewerUrl =>
-      'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.pdfUrl)}&embedded=true';
+    'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.pdfUrl)}&embedded=true';
 
   @override
   void initState() {
@@ -49,9 +50,16 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         actions: [
           // Reload button for when Google Docs viewer times out
           IconButton(
-            icon: const Icon(Icons.open_in_browser, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              setState(() => _loading = true);
+              _ctrl.loadRequest(Uri.parse(_viewerUrl));
+            }),
+          // Open in browser as fallback
+          IconButton(
+            icon: const Icon(Icons.open_in_browser, color: Colors.white70),
             onPressed: () => launchUrl(Uri.parse(widget.pdfUrl),
-                mode: LaunchMode.externalApplication)),
+              mode: LaunchMode.externalApplication)),
         ],
       ),
       body: Stack(children: [
@@ -66,26 +74,19 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 const SizedBox(height: 20),
                 const Text('Loading PDF...', style: TextStyle(color: Colors.white70, fontSize: 15)),
                 const SizedBox(height: 6),
-                const Text('Using Google Docs viewer', style: TextStyle(color: Colors.white38, fontSize: 11)),
+                const Text('This may take 10–20 seconds on first load',
+                  style: TextStyle(color: Colors.white38, fontSize: 11)),
+                const SizedBox(height: 24),
+                // Tap to reload if it takes too long
+                TextButton(
+                  onPressed: () {
+                    setState(() => _loading = true);
+                    _ctrl.loadRequest(Uri.parse(_viewerUrl));
+                  },
+                  child: const Text('Tap to retry',
+                    style: TextStyle(color: AppColors.teal, fontSize: 13))),
               ]))),
       ]),
-      bottomNavigationBar: Container(
-        color: AppColors.primaryDark,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(children: [
-          const Icon(Icons.info_outline, color: Colors.white38, size: 14),
-          const SizedBox(width: 6),
-          const Expanded(child: Text('Powered by Cloudflare R2',
-            style: TextStyle(color: Colors.white38, fontSize: 11))),
-          TextButton(
-            onPressed: () { setState(() => _loading = true); _ctrl.reload(); },
-            child: const Text('Reload', style: TextStyle(color: AppColors.teal, fontSize: 12))),
-          TextButton(
-            onPressed: () => launchUrl(Uri.parse(widget.pdfUrl),
-                mode: LaunchMode.externalApplication),
-            child: const Text('Browser', style: TextStyle(color: AppColors.teal, fontSize: 12))),
-        ]),
-      ),
     );
   }
 }
