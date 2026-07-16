@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:881638212469:android:placeholder",
+        "mobilesdk_app_id": "1:881638212469:android:89bfa42941ad7945b7893c",
         "android_client_info": {
           "package_name": "org.yogaconsciousness.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8"
+          "current_key": "AIzaSyCvDWF3L0UsQqKwR7pvHNI9XO3G4y36RFY"
         }
       ],
       "services": {
