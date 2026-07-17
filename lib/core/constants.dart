@@ -30,7 +30,7 @@ class AppStrings {
   static const appNameTelugu  = 'యోగ చైతన్య సంస్థ';
   static const magazineName   = 'యోగ చైతన్య ప్రభ';
   static const guruName       = 'Yogacharya Sri Raparthi Rama Rao';
-  static const contactEmail   = 'yctdesk@gmail.com';
+  static const contactEmail   = 'info@yogaconsciousness.org';
   static const website        = 'https://www.yogaconsciousness.org';
   static const whatsapp       = 'https://wa.me/918966268680';
 }

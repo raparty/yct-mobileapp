@@ -38,3 +38,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/images/yct_logo.png
+    - assets/images/guruji.jpg

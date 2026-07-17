@@ -91,9 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Container(width: 40, height: 40,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
-                child: const Center(child: Text('YCT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
+              Container(width: 44, height: 44,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4)]),
+                child: ClipOval(child: Image.asset('assets/images/yct_logo.png', fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Center(child: Text('YCT', style: TextStyle(color: AppColors.primary, fontSize: 9, fontWeight: FontWeight.bold)))))),
               const SizedBox(width: 10),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text(AppStrings.appName, style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),

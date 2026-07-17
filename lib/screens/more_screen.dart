@@ -23,9 +23,11 @@ class MoreScreen extends StatelessWidget {
             width: double.infinity, color: AppColors.primary,
             padding: const EdgeInsets.all(20),
             child: Column(children: [
-              Container(width: 64, height: 64,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
-                child: const Center(child: Text('YCT', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)))),
+              Container(width: 72, height: 72,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8)]),
+                child: ClipOval(child: Image.asset('assets/images/yct_logo.png', fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Center(child: Text('YCT', style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold)))))),
               const SizedBox(height: 10),
               const Text(AppStrings.appName, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
@@ -51,7 +53,7 @@ class MoreScreen extends StatelessWidget {
               _MenuCard(items: [
                 _MenuItem(Icons.language, 'Website', AppStrings.website, () => _open(AppStrings.website)),
                 _MenuItem(Icons.chat_outlined, 'WhatsApp', 'Chat with us', () => _open(AppStrings.whatsapp)),
-                _MenuItem(Icons.email_outlined, 'Email', AppStrings.contactEmail, () => _open('mailto:${AppStrings.contactEmail}')),
+                _MenuItem(Icons.email_outlined, 'Email', 'info@yogaconsciousness.org', () => _open('mailto:${'info@yogaconsciousness.org'}')),
                 _MenuItem(Icons.phone_outlined, 'Phone', '+91 89662 68680', () => _open('tel:+918966268680')),
               ]),
               const SizedBox(height: 20),
@@ -59,7 +61,7 @@ class MoreScreen extends StatelessWidget {
               const SizedBox(height: 8),
               _MenuCard(items: [
                 _MenuItem(Icons.shopping_bag_outlined, 'Buy Publications', 'Order books and magazines online', () => _open('${AppStrings.website}/shop')),
-                _MenuItem(Icons.subscriptions_outlined, 'Subscribe to Magazine', 'Get యోగ చైతన్య ప్రభ monthly', () => _open('mailto:${AppStrings.contactEmail}')),
+                _MenuItem(Icons.subscriptions_outlined, 'Subscribe to Magazine', 'Get యోగ చైతన్య ప్రభ monthly', () => _open('mailto:${'info@yogaconsciousness.org'}')),
               ]),
               const SizedBox(height: 20),
               Center(child: Text('Version 1.0.0 · Yoga Consciousness Trust', style: const TextStyle(fontSize: 11, color: AppColors.textMuted))),
