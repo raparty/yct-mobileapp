@@ -1,27 +1,30 @@
-// YCT App — Firestore Service
-// Replaces Google Sheets completely
-// Content managed via admin page, served from Firestore + R2
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'models.dart';
 
 class FirestoreService {
   static final _db = FirebaseFirestore.instance;
 
-  // Enable offline persistence (works without internet after first load)
   static void init() {
-    _db.settings = const Settings(persistenceEnabled: true, cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+    _db.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
   }
 
   static Future<List<Magazine>> fetchMagazines() async {
     try {
+      // Simple query — no composite index needed
       final snap = await _db.collection('magazines')
           .where('is_published', isEqualTo: true)
-          .orderBy('year', descending: true)
-          .orderBy('month', descending: true)
           .get();
-      return snap.docs.map((d) => Magazine.fromFirestore(d)).toList();
+      final list = snap.docs.map((d) => Magazine.fromFirestore(d)).toList();
+      // Sort in Dart instead of Firestore
+      list.sort((a, b) {
+        final y = b.year.compareTo(a.year);
+        return y != 0 ? y : b.month.compareTo(a.month);
+      });
+      return list;
     } catch (e) {
+      print('fetchMagazines error: $e');
       return [];
     }
   }
@@ -30,10 +33,12 @@ class FirestoreService {
     try {
       final snap = await _db.collection('books')
           .where('is_published', isEqualTo: true)
-          .orderBy('sort_order')
           .get();
-      return snap.docs.map((d) => Book.fromFirestore(d)).toList();
+      final list = snap.docs.map((d) => Book.fromFirestore(d)).toList();
+      list.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      return list;
     } catch (e) {
+      print('fetchBooks error: $e');
       return [];
     }
   }
@@ -42,10 +47,12 @@ class FirestoreService {
     try {
       final snap = await _db.collection('audio')
           .where('is_published', isEqualTo: true)
-          .orderBy('title')
           .get();
-      return snap.docs.map((d) => AudioTrack.fromFirestore(d)).toList();
+      final list = snap.docs.map((d) => AudioTrack.fromFirestore(d)).toList();
+      list.sort((a, b) => a.title.compareTo(b.title));
+      return list;
     } catch (e) {
+      print('fetchAudio error: $e');
       return [];
     }
   }
@@ -56,23 +63,18 @@ class FirestoreService {
       if (doc.exists) return AppSettings.fromFirestore(doc);
       return AppSettings.defaults();
     } catch (e) {
+      print('fetchSettings error: $e');
       return AppSettings.defaults();
     }
   }
 
-  // Real-time streams — UI updates automatically when content changes
-  static Stream<List<Magazine>> magazineStream() =>
-      _db.collection('magazines')
-          .where('is_published', isEqualTo: true)
-          .orderBy('year', descending: true)
-          .orderBy('month', descending: true)
-          .snapshots()
-          .map((s) => s.docs.map((d) => Magazine.fromFirestore(d)).toList());
-
-  static Stream<List<AudioTrack>> audioStream() =>
-      _db.collection('audio')
-          .where('is_published', isEqualTo: true)
-          .orderBy('title')
-          .snapshots()
-          .map((s) => s.docs.map((d) => AudioTrack.fromFirestore(d)).toList());
+  // Fetch WITHOUT any filter — useful for debugging
+  static Future<int> countAll(String collection) async {
+    try {
+      final snap = await _db.collection(collection).get();
+      return snap.docs.length;
+    } catch (e) {
+      return -1;
+    }
+  }
 }
