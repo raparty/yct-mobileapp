@@ -1,119 +1,147 @@
-# 🪷 Yoga Consciousness Trust — Mobile App
+<p align="center">
+  <img src="docs/yct_logo.png" width="100" alt="Yoga Consciousness Trust Logo"/>
+</p>
 
-Official app for Yoga Consciousness Trust (YCT), featuring the complete
-digital library of publications, audio discourses, center directory, and
-daily teachings of Yogacharya Sri Raparthi Rama Rao.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| App framework | Flutter (Android + iOS) |
-| Content database | Google Sheets |
-| File storage | Google Drive |
-| No backend server | Direct API access |
+<h1 align="center">Yoga Consciousness Trust</h1>
+<p align="center">
+  <strong>Official Mobile Application</strong><br/>
+  అనుష్ఠాన యోగ వేదాంత మాస పత్రిక<br/>
+  Spreading the light of Anushtana Yoga Vedanta since 1990<br/>
+  <a href="https://www.yogaconsciousness.org">yogaconsciousness.org</a>
+</p>
 
 ---
 
-## Getting Started
+> ⚠️ **Proprietary Software — All Rights Reserved**
+> Copyright © Yoga Consciousness Trust. Unauthorised use, reproduction, or distribution is strictly prohibited. See [License](#license) below.
 
-### Prerequisites
-- Flutter SDK 3.22+ → [flutter.dev](https://flutter.dev/docs/get-started/install)
-- Android Studio or VS Code with Flutter extension
-- Android emulator or physical device
+---
 
-### Run locally
+## ✨ Features
+
+- 📰 **Magazine Library** — Complete archive of *Yoga Chaitanya Prabha* (యోగ చైతన్య ప్రభ)
+- 🎵 **Audio Discourses** — Stream Gurudev's teachings with in-app player, search, skip controls
+- 📚 **Books & Publications** — Telugu, English, and bilingual books with in-app PDF reader
+- 📍 **Centers Directory** — All 15 centers across AP & Telangana with tap-to-call and Maps
+- 💬 **Daily Teaching** — A fresh teaching from Gurudev each day
+- 👤 **About Gurudev** — Life and teachings of Yogacharya Sri Raparthi Rama Rao
+
+---
+
+## 🏗️ Architecture
+
+```
+Flutter App (Android + iOS)
+       ↓
+Firebase Firestore ← content metadata (titles, paths, settings)
+       +
+Cloudflare R2      ← actual files (PDFs, MP3s)
+       ↑
+Admin Panel (Cloudflare Worker) ← one-click upload for YCT staff
+```
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| App | Flutter 3.19 | Single codebase → Android + iOS |
+| Database | Firebase Firestore | Real-time content management |
+| Storage | Cloudflare R2 | Secure PDF and MP3 hosting |
+| Admin | Cloudflare Worker | Authorised staff content publishing |
+| CI/CD | GitHub Actions | Automatic APK + AAB builds |
+
+---
+
+## 🚀 Building (Authorised Developers Only)
 
 ```bash
-# Clone the repo
-git clone https://github.com/YOUR_USERNAME/yct-app.git
-cd yct-app
-
-# Install dependencies
+git clone https://github.com/raparty/yct-mobileapp.git
+cd yct-mobileapp
 flutter pub get
-
-# Run on connected device or emulator
 flutter run
 ```
 
-### Build APK for testing
-
-```bash
-flutter build apk --debug
-# Output: build/app/outputs/flutter-apk/app-debug.apk
-```
+> Firebase and Cloudflare credentials are required.
+> Contact **info@yogaconsciousness.org** for access.
 
 ---
 
-## Content Management
+## 📦 Automated Builds
 
-All content is managed through Google Sheets — **no code changes needed**
-to add new magazines, books, or audio.
+Every push to `main` builds these artifacts automatically via GitHub Actions:
 
-**Google Sheet:** [YCT App Database](https://docs.google.com/spreadsheets/d/12yAED0Eo29odVliNbYKVrBD7jxlI5TCiQa_EQNX6A5s)
-
-### Adding a new magazine issue
-
-1. Upload the PDF to Google Drive → `YCT App Content/publications/magazines/YYYY/`
-2. Name it: `YYYY-MM-MonthName.pdf` (e.g. `2026-07-July.pdf`)
-3. Right-click → Share → Copy link
-4. Open the Google Sheet → `magazines` tab
-5. Add a new row with all details and paste the Drive link in `pdf_url`
-6. Set `is_published` to `TRUE`
-7. The app refreshes automatically on next open ✓
-
-### Adding a book
-
-Same process — upload to `books/english/` or `books/telugu/`, add row to `books` tab.
-
-### Adding audio
-
-Upload MP3 to `audio/discourses/`, add row to `audio` tab.
+| Artifact | Description | Size |
+|----------|-------------|------|
+| `yct-arm64-apk` | Modern Android phones | ~9 MB |
+| `yct-arm32-apk` | Older Android phones | ~8 MB |
+| `yct-playstore-aab` | Google Play Store bundle | ~22 MB |
+| `yct-ios-unsigned` | iOS unsigned build | — |
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
 ```
 lib/
-├── main.dart                    # App entry + bottom navigation
+├── main.dart                         # App entry + Firebase init
 ├── core/
-│   ├── constants.dart           # Colors, strings, Sheet config
-│   ├── models.dart              # Magazine, Book, AudioTrack models
-│   └── sheets_service.dart      # Google Sheets data fetching
+│   ├── constants.dart                # Colors, strings, config
+│   ├── models.dart                   # Magazine, Book, AudioTrack
+│   └── firestore_service.dart        # Firestore data fetching
 └── screens/
-    ├── home_screen.dart         # Home with daily quote
-    ├── library_screen.dart      # Publications browser
+    ├── home_screen.dart              # Home with daily quote
+    ├── library_screen.dart           # Publications browser
     ├── magazine_archive_screen.dart  # Browse by year
-    ├── issue_detail_screen.dart # Issue detail + Read/Download/Share
-    ├── book_detail_screen.dart  # Book detail
-    ├── audio_screen.dart        # Audio streaming
-    ├── centers_screen.dart      # Center directory
-    └── more_screen.dart         # About, contact links
+    ├── issue_detail_screen.dart      # Issue detail + PDF viewer
+    ├── book_detail_screen.dart       # Book detail + PDF viewer
+    ├── pdf_viewer_screen.dart        # In-app PDF reader
+    ├── audio_screen.dart             # Audio player
+    ├── centers_screen.dart           # All 15 centers
+    ├── gurudev_screen.dart           # About Gurudev
+    └── more_screen.dart              # Settings and links
 ```
 
 ---
 
-## GitHub Actions
+## 📍 Centers
 
-Every push to `main` automatically:
-- Builds a debug Android APK
-- Builds iOS (no code sign)
-- Uploads the APK as a downloadable artifact
-
-Download the APK from the **Actions** tab → latest build → Artifacts.
-
----
-
-## Configuration
-
-Edit `lib/core/constants.dart` to update:
-- `SheetConfig.sheetId` — your Google Sheet ID
-- `AppStrings` — app name, contact details
-- `AppColors` — brand colors
+| City | Name | Phone |
+|------|------|-------|
+| Vizinigiri (HQ) | Yoga Chaitanyaramam | +91 8966 268923 |
+| Bheemili | International Institute of Yoga Research & Training | +91 8933 228222 |
+| Visakhapatnam | Yoga Consciousness Trust (3 centers) | +91 9440 179914 |
+| Hyderabad | Yoga Chaitanya Sadanam | +91 8415 329306 |
+| Nandyal | Yoga Chaitanya Kendra | +91 8919 771823 |
+| Kanavaram | Yoga Consciousness Trust | +91 9949 203222 |
+| Kakinada | Yoga Consciousness Trust | +91 9849 340359 |
+| Rajahmundry | Yoga Consciousness Trust | +91 7382 308440 |
+| Eluru | Yoga Consciousness Trust | +91 9491 606925 |
 
 ---
 
-*Built with ❤️ for Yoga Consciousness Trust*
+## 📞 Contact
+
+**Yoga Consciousness Trust**
+Yoga Chaitanyaramam, Vizinigiri – 535 250, Jami Mandal, Vizianagaram Dt., A.P.
+
+📧 info@yogaconsciousness.org
+🌐 www.yogaconsciousness.org
+📞 +91 8966 268923
+
+---
+
+## License
+
+**Copyright © 2026 Yoga Consciousness Trust. All Rights Reserved.**
+
+This software and its source code are the exclusive property of Yoga Consciousness Trust (YCT), Vizinigiri, Andhra Pradesh, India.
+
+**You may NOT:**
+- Copy, modify, or distribute this software
+- Use this code for any commercial or non-commercial purpose without written permission
+- Reverse engineer or create derivative works based on this software
+
+**You may:**
+- View this code for reference only, with prior written consent from YCT
+
+For permissions or enquiries: **info@yogaconsciousness.org**
+
+*This repository is hosted publicly for deployment and CI/CD purposes only.*
