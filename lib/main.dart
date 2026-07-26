@@ -1,6 +1,12 @@
+// ─────────────────────────────────────────
+// YCT App — Main Entry (R1)
+// Crashlytics + Firebase init
+// ─────────────────────────────────────────
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'core/constants.dart';
 import 'core/firestore_service.dart';
 import 'screens/home_screen.dart';
@@ -11,25 +17,39 @@ import 'screens/more_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey: 'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8',
-      appId: '1:881638212469:android:89bfa42941ad7945b7893c',
+      apiKey:            'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8',
+      appId:             '1:881638212469:android:89bfa42941ad7945b7893c',
       messagingSenderId: '881638212469',
-      projectId: 'yct-app',
-      storageBucket: 'yct-app.firebasestorage.app',
+      projectId:         'yct-app',
+      storageBucket:     'yct-app.firebasestorage.app',
     ),
   );
-  FirestoreService.init();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: AppColors.primaryDark,
-    statusBarIconBrightness: Brightness.light,
-  ));
-  runApp(const YCTApp());
+
+  // ── Crashlytics ──────────────────────────────────────────────
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+  // Catch all async errors
+  await runZonedGuarded(() async {
+    FirestoreService.init();
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: AppColors.primaryDark,
+      statusBarIconBrightness: Brightness.light,
+    ));
+    runApp(const YCTApp());
+  }, (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
+  });
 }
 
 class YCTApp extends StatelessWidget {
   const YCTApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -37,9 +57,17 @@ class YCTApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary, primary: AppColors.primary, background: AppColors.bg),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          primary: AppColors.primary,
+          background: AppColors.bg),
         scaffoldBackgroundColor: AppColors.bg,
-        appBarTheme: const AppBarTheme(backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 0),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0),
+        // Consistent font across all Android versions
+        fontFamily: 'Roboto',
       ),
       home: const MainShell(),
     );
@@ -76,11 +104,26 @@ class _MainShellState extends State<MainShell> {
         indicatorColor: AppColors.primaryLight,
         elevation: 8,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: AppColors.primary), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book, color: AppColors.primary), label: 'Library'),
-          NavigationDestination(icon: Icon(Icons.headphones_outlined), selectedIcon: Icon(Icons.headphones, color: AppColors.primary), label: 'Audio'),
-          NavigationDestination(icon: Icon(Icons.location_on_outlined), selectedIcon: Icon(Icons.location_on, color: AppColors.primary), label: 'Centers'),
-          NavigationDestination(icon: Icon(Icons.more_horiz), selectedIcon: Icon(Icons.more_horiz, color: AppColors.primary), label: 'More'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home, color: AppColors.primary),
+            label: 'Home'),
+          NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book, color: AppColors.primary),
+            label: 'Library'),
+          NavigationDestination(
+            icon: Icon(Icons.headphones_outlined),
+            selectedIcon: Icon(Icons.headphones, color: AppColors.primary),
+            label: 'Audio'),
+          NavigationDestination(
+            icon: Icon(Icons.location_on_outlined),
+            selectedIcon: Icon(Icons.location_on, color: AppColors.primary),
+            label: 'Centers'),
+          NavigationDestination(
+            icon: Icon(Icons.more_horiz),
+            selectedIcon: Icon(Icons.more_horiz, color: AppColors.primary),
+            label: 'More'),
         ],
       ),
     );

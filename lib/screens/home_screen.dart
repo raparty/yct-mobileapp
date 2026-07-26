@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
 import '../core/firestore_service.dart';
+import '../core/connectivity_service.dart';
+import '../widgets/error_view.dart';
 import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
 import 'gurudev_screen.dart';
@@ -22,20 +25,30 @@ class _HomeScreenState extends State<HomeScreen> {
   AppSettings _settings = AppSettings.defaults();
   List<Magazine> _magazines = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    final results = await Future.wait([
-      FirestoreService.fetchSettings(),
-      FirestoreService.fetchMagazines(),
-    ]);
-    if (mounted) setState(() {
-      _settings  = results[0] as AppSettings;
-      _magazines = (results[1] as List<Magazine>).take(4).toList();
-      _loading   = false;
-    });
+    setState(() { _loading = true; _error = null; });
+    try {
+      final results = await Future.wait([
+        FirestoreService.fetchSettings(),
+        FirestoreService.fetchMagazines(),
+      ]);
+      if (mounted) setState(() {
+        _settings  = results[0] as AppSettings;
+        _magazines = (results[1] as List<Magazine>).take(4).toList();
+        _loading   = false;
+      });
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack);
+      if (mounted) setState(() {
+        _error   = ConnectivityService.friendlyError(e);
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _openUrl(String url) async {
