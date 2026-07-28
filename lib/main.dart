@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────
-// YCT App — Main Entry (R1)
-// Crashlytics + Firebase init
-// ─────────────────────────────────────────
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -10,6 +6,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'core/constants.dart';
 import 'core/firestore_service.dart';
+import 'core/remote_config_service.dart';
+import 'core/auth_service.dart';
+import 'core/update_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/audio_screen.dart';
@@ -29,19 +28,27 @@ void main() async {
     ),
   );
 
-  // ── Crashlytics ──────────────────────────────────────────────
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  // Crashlytics — catch all uncaught errors
+  FlutterError.onError =
+      FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
   };
-  // Catch all async errors
+
   await runZonedGuarded(() async {
-    FirestoreService.init();
+    // All services init in parallel — none block the UI
+    await Future.wait([
+      Future(() => FirestoreService.init()),
+      RemoteConfigService.init(),
+      AuthService.init(),
+    ]);
+
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: AppColors.primaryDark,
       statusBarIconBrightness: Brightness.light,
     ));
+
     runApp(const YCTApp());
   }, (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
@@ -67,7 +74,6 @@ class YCTApp extends StatelessWidget {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0),
-        // Consistent font across all Android versions
         fontFamily: 'Roboto',
       ),
       home: const MainShell(),
@@ -81,8 +87,31 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _idx = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Check force update after first frame renders
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await UpdateService.checkAndShowIfRequired(context);
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      RemoteConfigService.refresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   void _switchTab(int i) => setState(() => _idx = i);
 
