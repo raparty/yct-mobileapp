@@ -29,11 +29,23 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/yct-release.jks
+
       - name: Build release APK (split by ABI)
         run: flutter build apk --release --split-per-abi
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
-      - name: Build App Bundle (AAB for Play Store)
+      - name: Build signed AAB (Play Store)
         run: flutter build appbundle --release
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
       - name: Upload ARM64 APK (modern phones)
         uses: actions/upload-artifact@v4
@@ -49,7 +61,7 @@ jobs:
           path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
           retention-days: 30
 
-      - name: Upload AAB (Play Store)
+      - name: Upload signed AAB (Play Store)
         uses: actions/upload-artifact@v4
         with:
           name: yct-playstore-aab
