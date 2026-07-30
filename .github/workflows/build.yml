@@ -116,30 +116,28 @@ jobs:
 
       - name: Find and package Runner.app as IPA
         run: |
-          # Debug — show what was actually built
-          echo "=== Searching for Runner.app ==="
-          find build/ios -name "Runner.app" -type d 2>/dev/null || echo "Not found in build/ios"
-          find . -name "Runner.app" -type d 2>/dev/null | head -5
+          echo "=== Searching for Runner.app everywhere ==="
+          find . -name "Runner.app" -type d 2>/dev/null
 
-          # Try both possible output locations
-          RUNNER_PATH=""
-          if [ -d "build/ios/iphoneos/Runner.app" ]; then
-            RUNNER_PATH="build/ios/iphoneos/Runner.app"
-          elif [ -d "build/ios/Release-iphoneos/Runner.app" ]; then
-            RUNNER_PATH="build/ios/Release-iphoneos/Runner.app"
-          fi
+          # Find Runner.app wherever Flutter put it
+          RUNNER_PATH=$(find . -name "Runner.app" -type d 2>/dev/null | grep -v "Payload" | head -1)
 
           if [ -n "$RUNNER_PATH" ]; then
             echo "Found Runner.app at: $RUNNER_PATH"
-            PARENT_DIR=$(dirname "$RUNNER_PATH")
-            mkdir -p "$PARENT_DIR/Payload"
-            cp -r "$RUNNER_PATH" "$PARENT_DIR/Payload/"
-            cd "$PARENT_DIR"
-            zip -r YCT-unsigned.ipa Payload/
-            echo "IOS_IPA_PATH=$PARENT_DIR/YCT-unsigned.ipa" >> $GITHUB_ENV
+            # Get absolute path
+            RUNNER_ABS=$(cd "$(dirname "$RUNNER_PATH")" && pwd)/$(basename "$RUNNER_PATH")
+            echo "Absolute path: $RUNNER_ABS"
+            # Check it has real content
+            echo "Runner.app size: $(du -sh "$RUNNER_ABS")"
+
+            mkdir -p /tmp/ipa_build/Payload
+            cp -r "$RUNNER_ABS" /tmp/ipa_build/Payload/
+            cd /tmp/ipa_build
+            zip -r /tmp/YCT-unsigned.ipa Payload/
+            echo "IPA size: $(du -sh /tmp/YCT-unsigned.ipa)"
             echo "IOS_BUILD_SUCCESS=true" >> $GITHUB_ENV
           else
-            echo "Runner.app not found — build may have failed"
+            echo "ERROR: Runner.app not found anywhere"
             echo "IOS_BUILD_SUCCESS=false" >> $GITHUB_ENV
           fi
 
@@ -149,7 +147,7 @@ jobs:
         with:
           name: yct-ios-unsigned-ipa
           retention-days: 30
-          path: ${{ env.IOS_IPA_PATH }}
+          path: /tmp/YCT-unsigned.ipa
 
   # ── Job 3: Deploy Upload Worker ───────────────────────────────────────────
   deploy_worker:
