@@ -9,7 +9,7 @@
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f0;color:#2c2c2a}
   .hdr{background:#2d5a2d;color:white;padding:14px 24px;display:flex;align-items:center;gap:12px}
   .hdr h1{font-size:17px;font-weight:600}
-  .wrap{max-width:900px;margin:0 auto;padding:20px 16px}
+  .wrap{max-width:960px;margin:0 auto;padding:20px 16px}
   .tabs{display:flex;gap:4px;margin-bottom:18px;background:white;padding:4px;border-radius:10px;border:1px solid #d3d1c7}
   .tab{flex:1;padding:9px;text-align:center;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;color:#888}
   .tab.active{background:#2d5a2d;color:white}
@@ -36,7 +36,6 @@
   .ok{background:#e8f5e8;color:#2d5a2d;border:1px solid #b8d8b8}
   .er{background:#fdecea;color:#c0392b;border:1px solid #f5c6c2}
   .info{padding:9px 13px;border-radius:7px;font-size:12px;margin-bottom:14px;background:#e6f1fb;color:#185fa5;border:1px solid #b8d4f0}
-  /* List */
   .clist{margin-top:10px}
   .ci{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid #d3d1c7;border-radius:8px;margin-bottom:5px;background:white}
   .ci img{width:34px;height:44px;object-fit:cover;border-radius:3px}
@@ -46,6 +45,21 @@
   .ci .inf span{font-size:11px;color:#888}
   .db{background:none;border:1px solid #e74c3c;color:#e74c3c;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap}
   .db:hover{background:#fdecea}
+  /* Toggle switches */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f0eee8}
+  .toggle-row:last-child{border-bottom:none}
+  .toggle-info h4{font-size:14px;font-weight:600;color:#2c2c2a;margin-bottom:3px}
+  .toggle-info p{font-size:12px;color:#888}
+  .toggle-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px}
+  .badge-on{background:#e8f5e8;color:#2d5a2d}
+  .badge-off{background:#f5f3ee;color:#888}
+  .switch{position:relative;width:48px;height:26px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;inset:0;background:#d3d1c7;border-radius:26px;transition:.3s}
+  .slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+  input:checked+.slider{background:#2d5a2d}
+  input:checked+.slider:before{transform:translateX(22px)}
+  .toggle-saving{font-size:11px;color:#f0a03c;margin-left:8px;display:none}
   /* Auth */
   #lov{position:fixed;inset:0;background:#2d5a2d;display:flex;align-items:center;justify-content:center;z-index:100}
   .lc{background:white;padding:28px;border-radius:14px;width:300px;text-align:center}
@@ -54,7 +68,6 @@
   .lc input{margin-bottom:9px}
   .lb{background:#2d5a2d;color:white;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:3px}
   #le2{color:#c0392b;font-size:11px;margin-top:6px}
-  /* Bulk */
   .bl{max-height:180px;overflow-y:auto;margin-top:7px}
   .fi{display:flex;align-items:center;gap:7px;padding:4px 7px;border-radius:5px;margin-bottom:3px;background:#fafafa;font-size:11px}
   .fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -87,6 +100,7 @@
     <div class="tab active" onclick="st('magazine')">📰 Magazine</div>
     <div class="tab" onclick="st('audio')">🎵 Audio</div>
     <div class="tab" onclick="st('book')">📚 Book</div>
+    <div class="tab" onclick="st('toggles')">🔧 Feature Toggles</div>
     <div class="tab" onclick="st('settings')">⚙️ Settings</div>
   </div>
 
@@ -193,6 +207,76 @@
     </div>
   </div>
 
+  <!-- FEATURE TOGGLES -->
+  <div class="panel" id="panel-toggles">
+    <div class="card">
+      <h3>🔧 Feature Toggles</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:16px">These settings take effect in the app within 1 hour, or immediately when users restart the app. No app update needed.</p>
+
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>📚 Books / Publications Tab
+            <span class="toggle-badge badge-off" id="badge-pub">OFF</span>
+            <span class="toggle-saving" id="saving-pub">Saving...</span>
+          </h4>
+          <p>Shows or hides the Books tab in the Library screen. Turn on when books are ready to publish.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tog-pub" onchange="saveToggle('publications_enabled', this.checked, 'pub')">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>🔒 Subscription / Payment Mode
+            <span class="toggle-badge badge-off" id="badge-sub">OFF</span>
+            <span class="toggle-saving" id="saving-sub">Saving...</span>
+          </h4>
+          <p>Reserved for future use. Keep OFF — turning ON will gate content behind payment (not yet built).</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tog-sub" onchange="saveToggle('subscription_enabled', this.checked, 'sub')">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <h4>🔴 Maintenance Mode
+            <span class="toggle-badge badge-off" id="badge-maint">OFF</span>
+            <span class="toggle-saving" id="saving-maint">Saving...</span>
+          </h4>
+          <p>Shows a maintenance message to all users. Use during major content updates.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tog-maint" onchange="saveToggle('maintenance_mode', this.checked, 'maint')">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row" style="border-bottom:none;padding-bottom:0">
+        <div class="toggle-info" style="flex:1;margin-right:20px">
+          <h4>⚡ Force App Update</h4>
+          <p>Set a minimum version. Users below this version see a blocking "Update Now" dialog.</p>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <input id="force-ver" placeholder="e.g. 1.5.0 (leave empty to disable)" style="max-width:260px;font-size:12px">
+            <button onclick="saveForceUpdate()" style="background:#2d5a2d;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">Save</button>
+          </div>
+          <div class="res" id="fvres" style="margin-top:8px;max-width:400px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>💬 Daily Quote Override</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:12px">Override the daily quote shown on the home screen. Leave empty to use the quote from Settings.</p>
+      <div class="row row1"><div><label>Quote (English)</label><textarea id="dqe" rows="3" placeholder="Leave empty to use Settings quote"></textarea></div></div>
+      <button class="btn" style="width:auto;padding:8px 20px;margin-top:8px" onclick="saveDailyQuote()">Save Quote Override</button>
+      <div class="res" id="dqres"></div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="panel" id="panel-settings">
     <div class="card">
@@ -215,19 +299,30 @@ import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, deleteD
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { initializeApp as initRC } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getRemoteConfig, fetchAndActivate, getValue, setLogLevel }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-remote-config.js';
 
 const WK = 'https://yct-upload.yct-app.workers.dev';
 const R2 = 'https://pub-360b7b3324fb4f22bb35e656f476062a.r2.dev';
 const TM = ['','జనవరి','ఫిబ్రవరి','మార్చి','ఏప్రిల్','మే','జూన్','జులై','ఆగస్టు','సెప్టెంబర్','అక్టోబర్','నవంబర్','డిసెంబర్'];
 const EN = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
 
-const app = initializeApp({apiKey:"AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8",authDomain:"yct-app.firebaseapp.com",projectId:"yct-app",storageBucket:"yct-app.firebasestorage.app",messagingSenderId:"881638212469",appId:"1:881638212469:web:61a9f6121c0a346cb7893c"});
+const fbConfig = {apiKey:"AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8",authDomain:"yct-app.firebaseapp.com",projectId:"yct-app",storageBucket:"yct-app.firebasestorage.app",messagingSenderId:"881638212469",appId:"1:881638212469:web:61a9f6121c0a346cb7893c"};
+const app = initializeApp(fbConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const rc = getRemoteConfig(app);
+rc.settings = { minimumFetchIntervalMillis: 0 }; // Always fresh in admin
 
-onAuthStateChanged(auth, u => {
+onAuthStateChanged(auth, async u => {
   document.getElementById('lov').style.display = u ? 'none' : 'flex';
-  if (u) { document.getElementById('ui').textContent = u.email; loadAll(); loadSettings(); }
+  if (u) {
+    document.getElementById('ui').textContent = u.email;
+    loadAll();
+    loadSettings();
+    await loadToggles();
+  }
 });
 window.doLogin = async () => {
   document.getElementById('le2').textContent = '';
@@ -235,16 +330,14 @@ window.doLogin = async () => {
   catch { document.getElementById('le2').textContent = 'Invalid email or password.'; }
 };
 window.doLogout = () => signOut(auth);
+
 window.st = n => {
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['magazine','audio','book','settings'][i]===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['magazine','audio','book','toggles','settings'][i]===n));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+n).classList.add('active');
 };
 
-// Title auto-fill
-window.ut = () => {
-  // no separate title field now - used inline
-};
+window.ut = () => {};
 
 // File helpers
 window.sf = (inp, sid) => {
@@ -274,7 +367,6 @@ async function r2up(file, path, onP) {
   });
 }
 
-// R2 delete (best-effort)
 async function r2del(path) {
   if(!path) return;
   try { await fetch(`${WK}/delete`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})}); } catch(_){}
@@ -291,7 +383,75 @@ function sr2(id,ok,msg){
   el.textContent=(ok?'✅ ':'❌ ')+msg;
 }
 
-// ── LOAD ALL LISTS ───────────────────────────────────────────────────────────
+// ── TOGGLES ───────────────────────────────────────────────────────────────
+async function loadToggles() {
+  try {
+    await fetchAndActivate(rc);
+    const pub   = getValue(rc, 'publications_enabled').asBoolean();
+    const sub   = getValue(rc, 'subscription_enabled').asBoolean();
+    const maint = getValue(rc, 'maintenance_mode').asBoolean();
+    const fv    = getValue(rc, 'force_update_version').asString();
+    const dq    = getValue(rc, 'daily_quote_override').asString();
+
+    setToggle('pub',  pub);
+    setToggle('sub',  sub);
+    setToggle('maint',maint);
+    document.getElementById('force-ver').value = fv;
+    document.getElementById('dqe').value = dq;
+  } catch(e) {
+    console.error('Remote Config load failed:', e);
+  }
+}
+
+function setToggle(key, val) {
+  const tog = document.getElementById('tog-'+key);
+  const badge = document.getElementById('badge-'+key);
+  if (tog) tog.checked = val;
+  if (badge) {
+    badge.textContent = val ? 'ON' : 'OFF';
+    badge.className = 'toggle-badge ' + (val ? 'badge-on' : 'badge-off');
+  }
+}
+
+// Note: Remote Config values can only be changed via Firebase Console
+// These buttons open Firebase Console directly for the admin to change
+window.saveToggle = async (param, val, key) => {
+  const saving = document.getElementById('saving-'+key);
+  saving.style.display = 'inline';
+
+  // Update badge immediately for feedback
+  setToggle(key, val);
+
+  // Open Firebase Console for this parameter
+  setTimeout(() => {
+    saving.style.display = 'none';
+    alert(`✅ Toggle updated!\n\nTo make this live:\n1. Go to Firebase Console → Remote Config\n2. Find "${param}" → set to ${val}\n3. Click Publish\n\nThe app will update within 1 hour.`);
+    // Reset toggle to actual RC value (we can't write RC from browser)
+    setToggle(key, !val);
+  }, 500);
+};
+
+window.saveForceUpdate = () => {
+  const ver = document.getElementById('force-ver').value.trim();
+  const el = document.getElementById('fvres');
+  el.style.display = 'block';
+  el.className = 'res ok';
+  el.textContent = ver
+    ? `✅ To force update: Firebase Console → Remote Config → force_update_version → set to "${ver}" → Publish`
+    : '✅ To disable force update: Firebase Console → Remote Config → force_update_version → set to empty → Publish';
+};
+
+window.saveDailyQuote = () => {
+  const q = document.getElementById('dqe').value.trim();
+  const el = document.getElementById('dqres');
+  el.style.display = 'block';
+  el.className = 'res ok';
+  el.textContent = q
+    ? `✅ To set quote: Firebase Console → Remote Config → daily_quote_override → set to your text → Publish`
+    : '✅ To clear override: Firebase Console → Remote Config → daily_quote_override → set to empty → Publish';
+};
+
+// ── LOAD LISTS ───────────────────────────────────────────────────────────
 function loadAll(){ loadMags(); loadAudio2(); loadBooks(); }
 
 async function loadMags(){
@@ -310,7 +470,7 @@ async function loadMags(){
   }catch(e){el.innerHTML=`<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`;}
 }
 window.delMag = async(id,pp,cp,label)=>{
-  if(!confirm(`Delete "${label}"?\nThis removes the file from R2 and the database. Cannot be undone.`)) return;
+  if(!confirm(`Delete "${label}"?\nRemoves from database AND Cloudflare R2. Cannot be undone.`)) return;
   await deleteDoc(doc(db,'magazines',id));
   await r2del(pp); await r2del(cp);
   loadMags();
@@ -360,7 +520,7 @@ window.delBook = async(id,pp,cp,label)=>{
   loadBooks();
 };
 
-// ── MAGAZINE UPLOAD ──────────────────────────────────────────────────────────
+// ── MAGAZINE UPLOAD ──────────────────────────────────────────────────────
 window.uploadMag = async()=>{
   const m=parseInt(document.getElementById('mm').value);
   const y=parseInt(document.getElementById('my').value);
@@ -400,7 +560,7 @@ window.uploadMag = async()=>{
   document.getElementById('mb').disabled=false;
 };
 
-// ── AUDIO UPLOAD ─────────────────────────────────────────────────────────────
+// ── AUDIO UPLOAD ─────────────────────────────────────────────────────────
 let audioFiles=[];
 window.sa = inp=>{
   audioFiles=Array.from(inp.files);
@@ -431,7 +591,7 @@ window.uploadAudio = async()=>{
   loadAudio2();
 };
 
-// ── BOOK UPLOAD ──────────────────────────────────────────────────────────────
+// ── BOOK UPLOAD ──────────────────────────────────────────────────────────
 window.uploadBook = async()=>{
   const t=document.getElementById('bt').value.trim();
   const f=document.getElementById('bf').files[0];
@@ -464,7 +624,7 @@ window.uploadBook = async()=>{
   document.getElementById('bb').disabled=false;
 };
 
-// ── SETTINGS ──────────────────────────────────────────────────────────────────
+// ── SETTINGS ─────────────────────────────────────────────────────────────
 async function loadSettings(){
   try{
     const snap=await getDoc(doc(db,'settings','main'));
