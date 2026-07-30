@@ -8,6 +8,7 @@ import '../core/connectivity_service.dart';
 import '../widgets/error_view.dart';
 import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
+import '../widgets/cover_image.dart';
 import 'gurudev_screen.dart';
 
 // Callback to switch main tab from home screen
@@ -197,18 +198,14 @@ class _HomeScreenState extends State<HomeScreen> {
         return GestureDetector(
           onTap: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => IssueDetailScreen(magazine: mag))),
           child: SizedBox(width: 100, child: Column(children: [
-            Container(
+            SizedBox(
               height: 120, width: 100,
-              decoration: BoxDecoration(color: mag.coverColor, borderRadius: BorderRadius.circular(8),
-                boxShadow: [BoxShadow(color: mag.coverColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]),
-              padding: const EdgeInsets.all(8),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text('YCT', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 8)),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(mag.displayMonth, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                  Text('${mag.year}', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11)),
-                ]),
-              ])),
+              child: MagazineCover(
+                imageUrl:      mag.coverImageUrl,
+                fallbackColor: mag.coverColor,
+                month:         mag.displayMonth,
+                year:          mag.year,
+                borderRadius:  8)),
             const SizedBox(height: 4),
             Text(mag.titleTelugu, style: const TextStyle(fontSize: 10, color: AppColors.textDark),
               maxLines: 1, overflow: TextOverflow.ellipsis),

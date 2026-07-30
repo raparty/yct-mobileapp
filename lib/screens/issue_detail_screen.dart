@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
+import '../widgets/cover_image.dart';
 import 'pdf_viewer_screen.dart';
 
 class IssueDetailScreen extends StatelessWidget {
@@ -22,22 +23,21 @@ class IssueDetailScreen extends StatelessWidget {
               color: mag.coverColor,
               child: SafeArea(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const SizedBox(height: 40),
-                // Cover
+                // Cover — real image or color placeholder
                 Container(
                   width: 90, height: 120,
                   decoration: BoxDecoration(
-                    color: mag.coverColor.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0,8))]),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Text('యోగ చైతన్య ప్రభ', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 7)),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(mag.displayMonth, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                      Text('${mag.year} • Vol.${mag.volume}', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 8)),
-                    ]),
-                  ])),
+                    boxShadow: [BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 16, offset: const Offset(0,8))]),
+                  child: MagazineCover(
+                    imageUrl:      mag.coverImageUrl,
+                    fallbackColor: mag.coverColor,
+                    month:         mag.displayMonth,
+                    year:          mag.year,
+                    borderRadius:  3)),
                 const SizedBox(height: 12),
                 Text('${mag.titleTelugu} — Vol. ${mag.volume}',
                   style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),

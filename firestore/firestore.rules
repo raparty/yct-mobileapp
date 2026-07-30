@@ -1,0 +1,39 @@
+// YCT App — Firestore Security Rules
+// Deploy with: firebase deploy --only firestore:rules
+// Last updated: July 2026
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Public read collections ──────────────────────────────────
+    // Magazines: anyone can read published issues
+    match /magazines/{docId} {
+      allow read:  if resource.data.is_published == true;
+      allow write: if false; // Admin panel uses service account
+    }
+
+    // Books: anyone can read published books
+    match /books/{docId} {
+      allow read:  if resource.data.is_published == true;
+      allow write: if false;
+    }
+
+    // Audio: anyone can read published tracks
+    match /audio/{docId} {
+      allow read:  if resource.data.is_published == true;
+      allow write: if false;
+    }
+
+    // App settings: anyone can read
+    match /settings/{docId} {
+      allow read:  if true;
+      allow write: if false;
+    }
+
+    // ── Deny everything else ────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

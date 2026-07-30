@@ -9,6 +9,7 @@ import 'core/firestore_service.dart';
 import 'core/remote_config_service.dart';
 import 'core/auth_service.dart';
 import 'core/update_service.dart';
+import 'core/firebase_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/audio_screen.dart';
@@ -19,13 +20,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey:            'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8',
-      appId:             '1:881638212469:android:89bfa42941ad7945b7893c',
-      messagingSenderId: '881638212469',
-      projectId:         'yct-app',
-      storageBucket:     'yct-app.firebasestorage.app',
-    ),
+    options: YCTFirebaseConfig.android,
   );
 
   // Crashlytics — catch all uncaught errors

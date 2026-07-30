@@ -1,18 +1,17 @@
-name: YCT App Build
+name: Build YCT App
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  # ── Android APK + AAB ─────────────────────────────────────
-  build-android:
-    name: Build Android (APK + AAB)
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -25,87 +24,64 @@ jobs:
         with:
           flutter-version: '3.19.6'
           channel: 'stable'
+          cache: true
 
-      - name: Install dependencies
+      # ── Inject sensitive files from GitHub Secrets ──────────────
+      - name: Inject google-services.json
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+
+      - name: Inject keystore
+        run: |
+          echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 --decode > android/app/yct-release.jks
+
+      # ── Build ────────────────────────────────────────────────────
+      - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Decode keystore
+      - name: Build release APKs (split by ABI)
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/yct-release.jks
-
-      - name: Build release APK (split by ABI)
-        run: flutter build apk --release --split-per-abi
+          flutter build apk \
+            --release \
+            --split-per-abi \
+            --obfuscate \
+            --split-debug-info=build/debug-info
         env:
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS:      ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
-      - name: Build signed AAB (Play Store)
-        run: flutter build appbundle --release
+      - name: Build release AAB (Play Store)
+        run: |
+          flutter build appbundle \
+            --release \
+            --obfuscate \
+            --split-debug-info=build/debug-info
         env:
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS:      ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
-      - name: Upload ARM64 APK (modern phones)
+      # ── Upload artifacts ─────────────────────────────────────────
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: yct-arm64-apk
-          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          name: yct-apks
           retention-days: 30
+          path: |
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
 
-      - name: Upload ARM32 APK (older phones)
-        uses: actions/upload-artifact@v4
-        with:
-          name: yct-arm32-apk
-          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-          retention-days: 30
-
-      - name: Upload signed AAB (Play Store)
+      - name: Upload AAB (Play Store)
         uses: actions/upload-artifact@v4
         with:
           name: yct-playstore-aab
-          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
+          path: build/app/outputs/bundle/release/app-release.aab
 
-  # ── iOS ───────────────────────────────────────────────────
-  build-ios:
-    name: Build iOS (unsigned)
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.19.6'
-          channel: 'stable'
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Install CocoaPods
-        run: |
-          cd ios && pod install --repo-update
-
-      - name: Build iOS (no codesign — simulator/sideload)
-        run: flutter build ios --release --no-codesign
-        continue-on-error: true  # Signing error is expected without Apple cert
-
-      - name: Package Runner.app as zip
-        run: |
-          if [ -d "build/ios/iphoneos/Runner.app" ]; then
-            cd build/ios/iphoneos
-            zip -r Runner-unsigned.zip Runner.app
-            echo "IOS_BUILD_SUCCESS=true" >> $GITHUB_ENV
-          else
-            echo "IOS_BUILD_SUCCESS=false" >> $GITHUB_ENV
-          fi
-
-      - name: Upload iOS unsigned build
-        if: env.IOS_BUILD_SUCCESS == 'true'
+      - name: Upload debug symbols (for Crashlytics)
         uses: actions/upload-artifact@v4
         with:
-          name: yct-ios-unsigned
-          path: build/ios/iphoneos/Runner-unsigned.zip
+          name: yct-debug-symbols
           retention-days: 30
+          path: build/debug-info/

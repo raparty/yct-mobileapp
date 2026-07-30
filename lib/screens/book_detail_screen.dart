@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
+import '../widgets/cover_image.dart';
 import 'pdf_viewer_screen.dart';
 
 class BookDetailScreen extends StatelessWidget {
@@ -18,10 +19,16 @@ class BookDetailScreen extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Center(child: Container(
             width: 120, height: 160,
-            decoration: BoxDecoration(color: book.coverColor, borderRadius: BorderRadius.circular(6),
-              boxShadow: [BoxShadow(color: book.coverColor.withOpacity(0.4), blurRadius: 20, offset: const Offset(0,10))]),
-            child: Center(child: Text('YCT',
-              style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16, fontWeight: FontWeight.bold))))),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: [BoxShadow(
+                color: book.coverColor.withOpacity(0.4),
+                blurRadius: 20, offset: const Offset(0,10))]),
+            child: BookCover(
+              imageUrl:      book.coverImageUrl,
+              fallbackColor: book.coverColor,
+              title:         book.title,
+              borderRadius:  6))),
           const SizedBox(height: 20),
           Center(child: Text(book.title, textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark))),

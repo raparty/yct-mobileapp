@@ -4,7 +4,9 @@ import '../core/constants.dart';
 import '../core/models.dart';
 import '../core/firestore_service.dart';
 import '../core/connectivity_service.dart';
+import '../core/remote_config_service.dart';
 import '../widgets/error_view.dart';
+import '../widgets/cover_image.dart';
 import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
 import 'book_detail_screen.dart';
@@ -20,14 +22,16 @@ class _LibraryScreenState extends State<LibraryScreen>
   late TabController _tab;
   List<Magazine> _magazines = [];
   List<Book>     _books     = [];
-  bool   _loading = true;
+  bool    _loading = true;
   String? _error;
-  String _search  = '';
+  String  _search  = '';
+
+  bool get _pubEnabled => RemoteConfigService.publicationsEnabled;
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this);
+    _tab = TabController(length: _pubEnabled ? 2 : 1, vsync: this);
     _load();
   }
 
@@ -36,12 +40,12 @@ class _LibraryScreenState extends State<LibraryScreen>
     try {
       final results = await Future.wait([
         FirestoreService.fetchMagazines(),
-        FirestoreService.fetchBooks(),
+        if (_pubEnabled) FirestoreService.fetchBooks(),
       ]);
       if (mounted) setState(() {
         _magazines = results[0] as List<Magazine>;
-        _books     = results[1] as List<Book>;
-        _loading   = false;
+        if (_pubEnabled && results.length > 1) _books = results[1] as List<Book>;
+        _loading = false;
       });
     } catch (e, stack) {
       FirebaseCrashlytics.instance.recordError(e, stack);
@@ -74,14 +78,14 @@ class _LibraryScreenState extends State<LibraryScreen>
                 onPressed: _load)
             ],
             bottom: _loading || _error != null ? null : PreferredSize(
-              preferredSize: const Size.fromHeight(100),
+              preferredSize: Size.fromHeight(_pubEnabled ? 100 : 56),
               child: Column(children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16,0,16,8),
                   child: TextField(
                     onChanged: (v) => setState(() => _search = v),
                     decoration: InputDecoration(
-                      hintText: 'Search titles...',
+                      hintText: 'Search...',
                       hintStyle: const TextStyle(
                           color: AppColors.textMuted, fontSize: 13),
                       prefixIcon: const Icon(Icons.search,
@@ -98,19 +102,19 @@ class _LibraryScreenState extends State<LibraryScreen>
                     ),
                   ),
                 ),
-                TabBar(
-                  controller: _tab,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.textMid,
-                  indicatorColor: AppColors.primary,
-                  labelStyle: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 12),
-                  tabs: [
-                    Tab(text: 'Magazine (${_magazines.length})'),
-                    Tab(text: 'Books (${_books.length})'),
-                    const Tab(text: 'All'),
-                  ],
-                ),
+                if (_pubEnabled)
+                  TabBar(
+                    controller: _tab,
+                    labelColor: AppColors.primary,
+                    unselectedLabelColor: AppColors.textMid,
+                    indicatorColor: AppColors.primary,
+                    labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 12),
+                    tabs: [
+                      Tab(text: 'Magazines (${_magazines.length})'),
+                      Tab(text: 'Books (${_books.length})'),
+                    ],
+                  ),
               ])),
           ),
         ],
@@ -118,60 +122,67 @@ class _LibraryScreenState extends State<LibraryScreen>
             ? const LoadingView(message: 'Loading publications...')
             : _error != null
                 ? ErrorView(message: _error!, onRetry: _load)
-                : TabBarView(
-                    controller: _tab,
-                    children: [
-                      _MagTab(magazines: _magazines, search: _search),
-                      _BooksTab(books: _books, search: _search),
-                      _BooksTab(books: _books, search: _search),
-                    ]),
+                : _pubEnabled
+                    ? TabBarView(controller: _tab, children: [
+                        _MagTab(magazines: _magazines, search: _search),
+                        _BooksTab(books: _books, search: _search),
+                      ])
+                    : _MagTab(magazines: _magazines, search: _search),
       ),
     );
   }
 }
 
+// ── Magazine tab ─────────────────────────────────────────────────────────────
 class _MagTab extends StatelessWidget {
   final List<Magazine> magazines; final String search;
   const _MagTab({required this.magazines, required this.search});
 
   @override
   Widget build(BuildContext context) {
-    if (magazines.isEmpty) return EmptyView(
+    if (magazines.isEmpty) return const EmptyView(
       icon: Icons.menu_book_outlined,
       title: 'No magazines uploaded yet',
-      subtitle: 'Upload magazines via the admin panel\nand they will appear here.');
+      subtitle: 'Upload magazines via the admin panel.');
+
+    final filtered = search.isEmpty ? magazines
+        : magazines.where((m) =>
+            m.titleEnglish.toLowerCase().contains(search.toLowerCase()) ||
+            m.titleTelugu.contains(search)).toList();
+
+    if (filtered.isEmpty) return EmptyView(
+      icon: Icons.search_off,
+      title: 'No results for "$search"',
+      subtitle: 'Try a different search term.');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Archive shortcut
         GestureDetector(
-          onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const MagazineArchiveScreen())),
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => const MagazineArchiveScreen())),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: AppColors.primary.withOpacity(0.3))),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3))),
             child: Row(children: [
-              const Icon(Icons.auto_stories,
-                  color: AppColors.primary, size: 20),
+              const Icon(Icons.auto_stories, color: AppColors.primary, size: 20),
               const SizedBox(width: 10),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('యోగ చైతన్య ప్రభ — Full Archive',
-                    style: TextStyle(fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                         color: AppColors.primaryDark)),
                   Text('Browse all ${magazines.length} issues by year',
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.textMid)),
+                    style: const TextStyle(fontSize: 11, color: AppColors.textMid)),
                 ])),
-              const Icon(Icons.arrow_forward_ios,
-                  color: AppColors.primary, size: 14),
-            ]))),
+              const Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 14),
+            ])),
+        ),
         const SizedBox(height: 16),
         const Text('RECENT ISSUES',
           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
@@ -181,64 +192,45 @@ class _MagTab extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, childAspectRatio: 0.72,
+            crossAxisCount: 2, childAspectRatio: 0.68,
             crossAxisSpacing: 10, mainAxisSpacing: 10),
-          itemCount: magazines.take(6).length,
+          itemCount: filtered.take(6).length,
           itemBuilder: (ctx, i) {
-            final mag = magazines[i];
-            final ci  = i % AppColors.coverColors.length;
+            final mag = filtered[i];
             return GestureDetector(
               onTap: () => Navigator.push(ctx, MaterialPageRoute(
                 builder: (_) => IssueDetailScreen(magazine: mag))),
               child: Container(
-                decoration: BoxDecoration(color: Colors.white,
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border)),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: [BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 6, offset: const Offset(0,2))]),
                 child: Column(children: [
-                  Expanded(child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.coverColors[ci],
-                      borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(10))),
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('YCT',
-                          style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 7)),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(mag.displayMonth,
-                              style: const TextStyle(color: Colors.white,
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text('${mag.year}',
-                              style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 11)),
-                          ]),
-                      ]))),
+                  Expanded(child: MagazineCover(
+                    imageUrl:      mag.coverImageUrl,
+                    fallbackColor: mag.coverColor,
+                    month:         mag.displayMonth,
+                    year:          mag.year,
+                    borderRadius:  10)),
                   Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.fromLTRB(8,6,8,8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(mag.titleTelugu,
+                        Expanded(child: Text(mag.titleTelugu,
                           style: const TextStyle(fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textDark)),
-                        if (i==0) Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                              fontWeight: FontWeight.w500, color: AppColors.textDark),
+                          maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        if (i == 0) Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
                             color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(10)),
-                          child: const Text('Latest',
-                            style: TextStyle(fontSize: 9,
+                            borderRadius: BorderRadius.circular(8)),
+                          child: const Text('New',
+                            style: TextStyle(fontSize: 8,
                                 color: AppColors.primaryDark))),
                       ])),
                 ])));
@@ -247,6 +239,7 @@ class _MagTab extends StatelessWidget {
   }
 }
 
+// ── Books tab ────────────────────────────────────────────────────────────────
 class _BooksTab extends StatelessWidget {
   final List<Book> books; final String search;
   const _BooksTab({required this.books, required this.search});
@@ -258,67 +251,58 @@ class _BooksTab extends StatelessWidget {
             b.title.toLowerCase().contains(search.toLowerCase()) ||
             b.titleTelugu.contains(search)).toList();
 
-    if (books.isEmpty) return EmptyView(
+    if (books.isEmpty) return const EmptyView(
       icon: Icons.book_outlined,
       title: 'No books uploaded yet',
-      subtitle: 'Upload books via the admin panel\nand they will appear here.');
+      subtitle: 'Upload books via the admin panel.');
 
     if (filtered.isEmpty) return EmptyView(
       icon: Icons.search_off,
       title: 'No books match "$search"',
       subtitle: 'Try a different search term.');
 
-    return ListView.separated(
+    return GridView.builder(
       padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2, childAspectRatio: 0.65,
+        crossAxisSpacing: 10, mainAxisSpacing: 10),
       itemCount: filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (ctx, i) {
         final book = filtered[i];
         return GestureDetector(
           onTap: () => Navigator.push(ctx, MaterialPageRoute(
             builder: (_) => BookDetailScreen(book: book))),
           child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white,
+            decoration: BoxDecoration(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border)),
-            child: Row(children: [
-              Container(width: 48, height: 64,
-                decoration: BoxDecoration(color: book.coverColor,
-                  borderRadius: BorderRadius.circular(4)),
-                child: Center(child: Text('YCT',
-                  style: TextStyle(color: Colors.white.withOpacity(0.9),
-                    fontSize: 8, fontWeight: FontWeight.bold)))),
-              const SizedBox(width: 12),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              border: Border.all(color: AppColors.border),
+              boxShadow: [BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6, offset: const Offset(0,2))]),
+            child: Column(children: [
+              Expanded(child: BookCover(
+                imageUrl:      book.coverImageUrl,
+                fallbackColor: book.coverColor,
+                title:         book.title,
+                borderRadius:  10)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8,6,8,8),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(book.title,
-                    style: const TextStyle(fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark)),
-                  if (book.titleTelugu.isNotEmpty)
-                    Text(book.titleTelugu,
-                      style: const TextStyle(fontSize: 11,
-                          color: AppColors.textMid)),
-                  const SizedBox(height: 4),
-                  Text(book.description,
-                    style: const TextStyle(fontSize: 11,
-                        color: AppColors.textLight),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                        color: AppColors.textDark),
                     maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 3),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                     decoration: BoxDecoration(
                       color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(8)),
                     child: Text(book.language,
-                      style: const TextStyle(fontSize: 10,
+                      style: const TextStyle(fontSize: 9,
                           color: AppColors.primaryDark))),
                 ])),
-              const Icon(Icons.arrow_forward_ios,
-                  color: AppColors.textMuted, size: 14),
             ])));
       });
   }

@@ -1,3 +1,4 @@
+# Flutter
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -5,16 +6,36 @@
 .pub-cache/
 .pub/
 build/
-*.iml
+
+# Android
 **/android/.gradle
 **/android/captures/
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
+
+# ─────────────────────────────────────────────────
+# SECURITY: Never commit these files
+# ─────────────────────────────────────────────────
+# Firebase config — contains API key, project ID
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Signing keys
 **/android/key.properties
 *.jks
+*.keystore
+
+# iOS signing
+*.p12
+*.mobileprovision
+# ─────────────────────────────────────────────────
+
+# IDEs
+.DS_Store
+.vscode/
+.idea/
+*.iml
 **/ios/**/Pods/
 **/ios/**/.symlinks/
 **/ios/**/DerivedData/
 **/ios/**/xcuserdata
-.DS_Store
-.vscode/
