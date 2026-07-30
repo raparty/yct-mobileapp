@@ -14,11 +14,8 @@ dependencies:
   firebase_core: ^3.3.0
   cloud_firestore: ^5.3.0
   firebase_crashlytics: ^4.1.0
-  firebase_remote_config: ^5.1.0   # R2: Remote Config
-  firebase_auth: ^5.1.0            # R2: Silent auth
-
-  # Networking
-  http: ^1.2.0
+  firebase_remote_config: ^5.1.0
+  firebase_auth: ^5.1.0
 
   # PDF viewer
   webview_flutter: ^4.4.4
@@ -32,7 +29,8 @@ dependencies:
   shared_preferences: ^2.2.2
   cupertino_icons: ^1.0.6
   connectivity_plus: ^6.0.3
-  package_info_plus: ^8.0.0        # R2: App version for force update
+  package_info_plus: ^8.0.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

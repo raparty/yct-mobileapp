@@ -13,22 +13,15 @@ build/
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 
-# ─────────────────────────────────────────────────
-# SECURITY: Never commit these files
-# ─────────────────────────────────────────────────
-# Firebase config — contains API key, project ID
+# ── SECURITY: Never commit these ──────────────────
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
-
-# Signing keys
 **/android/key.properties
 *.jks
 *.keystore
-
-# iOS signing
 *.p12
 *.mobileprovision
-# ─────────────────────────────────────────────────
+# ──────────────────────────────────────────────────
 
 # IDEs
 .DS_Store

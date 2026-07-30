@@ -23,14 +23,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
+    kotlinOptions { jvmTarget = '17' }
+    sourceSets { main.java.srcDirs += 'src/main/kotlin' }
 
     defaultConfig {
         applicationId "org.yogaconsciousness.app"
@@ -59,22 +53,10 @@ android {
     }
 }
 
-flutter {
-    source '../..'
-}
-
-// Flutter obfuscation — makes reverse engineering harder
-// Symbols uploaded to Crashlytics automatically for crash analysis
-tasks.whenTaskAdded { task ->
-    if (task.name == 'assembleRelease') {
-        task.doFirst {
-            project.ext.set('dart-obfuscation', true)
-            project.ext.set('split-debug-info', 'build/debug-info')
-        }
-    }
-}
+flutter { source '../..' }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'

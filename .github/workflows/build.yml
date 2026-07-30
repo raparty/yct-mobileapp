@@ -1,4 +1,4 @@
-name: Build YCT App
+name: Build & Deploy YCT
 
 on:
   push:
@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  # ── Job 1: Build Flutter App ─────────────────────────────────────────────
+  build_app:
+    name: Build Flutter App
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -26,20 +26,17 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # ── Inject sensitive files from GitHub Secrets ──────────────
       - name: Inject google-services.json
-        run: |
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
       - name: Inject keystore
         run: |
           echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 --decode > android/app/yct-release.jks
 
-      # ── Build ────────────────────────────────────────────────────
-      - name: Get Flutter dependencies
+      - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build release APKs (split by ABI)
+      - name: Build APKs
         run: |
           flutter build apk \
             --release \
@@ -51,7 +48,7 @@ jobs:
           KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
-      - name: Build release AAB (Play Store)
+      - name: Build AAB
         run: |
           flutter build appbundle \
             --release \
@@ -62,7 +59,6 @@ jobs:
           KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
-      # ── Upload artifacts ─────────────────────────────────────────
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
@@ -72,16 +68,42 @@ jobs:
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
 
-      - name: Upload AAB (Play Store)
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: yct-playstore-aab
           retention-days: 30
           path: build/app/outputs/bundle/release/app-release.aab
 
-      - name: Upload debug symbols (for Crashlytics)
+      - name: Upload debug symbols
         uses: actions/upload-artifact@v4
         with:
           name: yct-debug-symbols
           retention-days: 30
           path: build/debug-info/
+
+  # ── Job 2: Deploy Cloudflare Worker (Upload API) ─────────────────────────
+  deploy_worker:
+    name: Deploy Upload Worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy yct-upload worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: cloudflare/worker
+
+  # ── Job 3: Deploy Admin Panel ────────────────────────────────────────────
+  deploy_admin:
+    name: Deploy Admin Panel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy admin panel (crimson-art-feea)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: cloudflare/admin
