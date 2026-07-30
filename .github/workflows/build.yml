@@ -114,15 +114,32 @@ jobs:
         run: flutter build ios --release --no-codesign
         continue-on-error: true
 
-      - name: Create IPA from Runner.app
+      - name: Find and package Runner.app as IPA
         run: |
+          # Debug — show what was actually built
+          echo "=== Searching for Runner.app ==="
+          find build/ios -name "Runner.app" -type d 2>/dev/null || echo "Not found in build/ios"
+          find . -name "Runner.app" -type d 2>/dev/null | head -5
+
+          # Try both possible output locations
+          RUNNER_PATH=""
           if [ -d "build/ios/iphoneos/Runner.app" ]; then
-            mkdir -p build/ios/iphoneos/Payload
-            cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-            cd build/ios/iphoneos
+            RUNNER_PATH="build/ios/iphoneos/Runner.app"
+          elif [ -d "build/ios/Release-iphoneos/Runner.app" ]; then
+            RUNNER_PATH="build/ios/Release-iphoneos/Runner.app"
+          fi
+
+          if [ -n "$RUNNER_PATH" ]; then
+            echo "Found Runner.app at: $RUNNER_PATH"
+            PARENT_DIR=$(dirname "$RUNNER_PATH")
+            mkdir -p "$PARENT_DIR/Payload"
+            cp -r "$RUNNER_PATH" "$PARENT_DIR/Payload/"
+            cd "$PARENT_DIR"
             zip -r YCT-unsigned.ipa Payload/
+            echo "IOS_IPA_PATH=$PARENT_DIR/YCT-unsigned.ipa" >> $GITHUB_ENV
             echo "IOS_BUILD_SUCCESS=true" >> $GITHUB_ENV
           else
+            echo "Runner.app not found — build may have failed"
             echo "IOS_BUILD_SUCCESS=false" >> $GITHUB_ENV
           fi
 
@@ -132,7 +149,7 @@ jobs:
         with:
           name: yct-ios-unsigned-ipa
           retention-days: 30
-          path: build/ios/iphoneos/YCT-unsigned.ipa
+          path: ${{ env.IOS_IPA_PATH }}
 
   # ── Job 3: Deploy Upload Worker ───────────────────────────────────────────
   deploy_worker:
