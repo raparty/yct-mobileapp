@@ -26,12 +26,12 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # Use printf to avoid echo adding newlines/quotes that corrupt JSON
       - name: Inject google-services.json
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+        run: printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
       - name: Inject keystore
-        run: |
-          echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 --decode > android/app/yct-release.jks
+        run: echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 --decode > android/app/yct-release.jks
 
       - name: Flutter pub get
         run: flutter pub get
@@ -82,18 +82,26 @@ jobs:
           retention-days: 30
           path: build/debug-info/
 
-  # ── Job 2: Deploy Cloudflare Worker (Upload API) ─────────────────────────
+  # ── Job 2: Deploy Upload Worker ──────────────────────────────────────────
   deploy_worker:
     name: Deploy Upload Worker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy yct-upload worker
-        uses: cloudflare/wrangler-action@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: cloudflare/worker
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@3.90.0
+
+      - name: Deploy yct-upload worker
+        working-directory: cloudflare/worker
+        run: wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   # ── Job 3: Deploy Admin Panel ────────────────────────────────────────────
   deploy_admin:
@@ -102,8 +110,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy admin panel (crimson-art-feea)
-        uses: cloudflare/wrangler-action@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: cloudflare/admin
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@3.90.0
+
+      - name: Deploy admin panel
+        working-directory: cloudflare/admin
+        run: wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
