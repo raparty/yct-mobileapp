@@ -88,7 +88,7 @@ jobs:
           retention-days: 30
           path: build/debug-info/
 
-  # ── Job 2: Build iOS (unsigned) ───────────────────────────────────────────
+  # ── Job 2: Build iOS (unsigned IPA) ──────────────────────────────────────
   build_ios:
     name: Build iOS
     runs-on: macos-latest
@@ -114,23 +114,25 @@ jobs:
         run: flutter build ios --release --no-codesign
         continue-on-error: true
 
-      - name: Package Runner.app as zip
+      - name: Create IPA from Runner.app
         run: |
           if [ -d "build/ios/iphoneos/Runner.app" ]; then
+            mkdir -p build/ios/iphoneos/Payload
+            cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
             cd build/ios/iphoneos
-            zip -r Runner-unsigned.zip Runner.app
+            zip -r YCT-unsigned.ipa Payload/
             echo "IOS_BUILD_SUCCESS=true" >> $GITHUB_ENV
           else
             echo "IOS_BUILD_SUCCESS=false" >> $GITHUB_ENV
           fi
 
-      - name: Upload iOS unsigned build
+      - name: Upload IPA
         if: env.IOS_BUILD_SUCCESS == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: yct-ios-unsigned
+          name: yct-ios-unsigned-ipa
           retention-days: 30
-          path: build/ios/iphoneos/Runner-unsigned.zip
+          path: build/ios/iphoneos/YCT-unsigned.ipa
 
   # ── Job 3: Deploy Upload Worker ───────────────────────────────────────────
   deploy_worker:
