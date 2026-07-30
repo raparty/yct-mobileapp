@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Job 1: Build Flutter App ─────────────────────────────────────────────
-  build_app:
-    name: Build Flutter App
+  # ── Job 1: Build Android ──────────────────────────────────────────────────
+  build_android:
+    name: Build Android
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build APKs
+      - name: Build APKs (split by ABI)
         run: |
           flutter build apk \
             --release \
@@ -49,7 +49,7 @@ jobs:
           KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
-      - name: Build AAB
+      - name: Build AAB (Play Store)
         run: |
           flutter build appbundle \
             --release \
@@ -60,14 +60,19 @@ jobs:
           KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
 
-      - name: Upload APKs
+      - name: Upload arm64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: yct-apks
+          name: yct-arm64-apk
           retention-days: 30
-          path: |
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+
+      - name: Upload arm32 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: yct-arm32-apk
+          retention-days: 30
+          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
@@ -83,7 +88,59 @@ jobs:
           retention-days: 30
           path: build/debug-info/
 
-  # ── Job 2: Deploy Upload Worker ──────────────────────────────────────────
+  # ── Job 2: Build iOS (unsigned) ───────────────────────────────────────────
+  build_ios:
+    name: Build iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Build iOS (unsigned — no Apple cert needed)
+        run: |
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --obfuscate \
+            --split-debug-info=build/debug-info-ios
+
+      - name: Create IPA archive
+        run: |
+          mkdir -p build/ios/ipa
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r ../ipa/YCT-unsigned.ipa Payload/
+
+      - name: Upload iOS IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: yct-ios-unsigned
+          retention-days: 30
+          path: build/ios/ipa/YCT-unsigned.ipa
+
+      - name: Upload iOS debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: yct-ios-debug-symbols
+          retention-days: 30
+          path: build/debug-info-ios/
+
+  # ── Job 3: Deploy Upload Worker ───────────────────────────────────────────
   deploy_worker:
     name: Deploy Upload Worker
     runs-on: ubuntu-latest
@@ -102,10 +159,10 @@ jobs:
         working-directory: cloudflare/worker
         run: npx wrangler deploy
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 5afa6e916ca8a0e330f044c1f7e41e44
 
-  # ── Job 3: Deploy Admin Panel ────────────────────────────────────────────
+  # ── Job 4: Deploy Admin Panel ─────────────────────────────────────────────
   deploy_admin:
     name: Deploy Admin Panel
     runs-on: ubuntu-latest
@@ -120,9 +177,9 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@4
 
-      - name: Deploy admin panel
+      - name: Deploy admin panel worker
         working-directory: cloudflare/admin
-        run: npx wrangler deploy
+        run: npx wrangler deploy --name crimson-art-feea
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 5afa6e916ca8a0e330f044c1f7e41e44
