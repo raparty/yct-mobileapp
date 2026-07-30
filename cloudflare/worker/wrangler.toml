@@ -1,6 +1,7 @@
 name = "yct-upload"
 main = "worker.js"
 compatibility_date = "2024-01-01"
+account_id = "5afa6e916ca8a0e330f044c1f7e41e44"
 
 [[r2_buckets]]
 binding = "YCT_BUCKET"
