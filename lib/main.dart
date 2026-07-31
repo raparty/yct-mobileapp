@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,7 +10,6 @@ import 'core/firestore_service.dart';
 import 'core/remote_config_service.dart';
 import 'core/auth_service.dart';
 import 'core/update_service.dart';
-import 'core/firebase_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/audio_screen.dart';
@@ -17,22 +17,30 @@ import 'screens/centers_screen.dart';
 import 'screens/more_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: YCTFirebaseConfig.android,
-  );
+    final appId = defaultTargetPlatform == TargetPlatform.iOS
+        ? '1:881638212469:ios:1a67a064aad27285b7893c'
+        : '1:881638212469:android:89bfa42941ad7945b7893c';
 
-  // Crashlytics — catch all uncaught errors
-  FlutterError.onError =
-      FirebaseCrashlytics.instance.recordFlutterFatalError;
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+    await Firebase.initializeApp(
+      options: FirebaseOptions(
+        apiKey:            'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWCO8',
+        appId:             appId,
+        messagingSenderId: '881638212469',
+        projectId:         'yct-app',
+        storageBucket:     'yct-app.firebasestorage.app',
+      ),
+    );
 
-  await runZonedGuarded(() async {
-    // All services init in parallel — none block the UI
+    FlutterError.onError =
+        FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+
     await Future.wait([
       Future(() => FirestoreService.init()),
       RemoteConfigService.init(),
@@ -45,6 +53,7 @@ void main() async {
     ));
 
     runApp(const YCTApp());
+
   }, (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
   });
@@ -89,7 +98,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Check force update after first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await UpdateService.checkAndShowIfRequired(context);
     });
