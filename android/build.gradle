@@ -17,6 +17,11 @@ allprojects {
         google()
         mavenCentral()
     }
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.fragment:fragment:1.5.7'
+        }
+    }
 }
 
 rootProject.buildDir = '../build'
