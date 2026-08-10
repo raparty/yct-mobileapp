@@ -26,7 +26,7 @@ void main() async {
 
     await Firebase.initializeApp(
       options: FirebaseOptions(
-        apiKey:            'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWCO8',
+        apiKey:            'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8',
         appId:             appId,
         messagingSenderId: '881638212469',
         projectId:         'yct-app',
@@ -41,7 +41,6 @@ void main() async {
       return true;
     };
 
-    // Firestore settings — synchronous, no network call, safe to call directly
     FirestoreService.init();
 
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -49,10 +48,8 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ));
 
-    // Launch app immediately — don't block on network calls
     runApp(const YCTApp());
 
-    // Auth and Remote Config fire in background after app is visible
     unawaited(AuthService.init());
     unawaited(RemoteConfigService.init());
 
