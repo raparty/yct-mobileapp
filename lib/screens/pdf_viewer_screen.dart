@@ -1,19 +1,17 @@
 // ─────────────────────────────────────────
-// YCT — PDF Viewer (R1)
-// • Last-read page memory per magazine
+// YCT — PDF Viewer (R2)
 // • Reload button
 // • Open in browser fallback
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/constants.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String title;
   final String pdfUrl;
-  final String? pdfId; // unique ID for page memory
+  final String? pdfId;
 
   const PdfViewerScreen({
     super.key,
@@ -29,35 +27,15 @@ class PdfViewerScreen extends StatefulWidget {
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final WebViewController _ctrl;
   bool _loading = true;
-  int _currentPage = 1;
-  int _totalPages  = 0;
-  int _savedPage   = 1;
-
-  static const String _prefPrefix = 'pdf_page_';
 
   String get _viewerUrl =>
     'https://docs.google.com/viewer'
     '?url=${Uri.encodeComponent(widget.pdfUrl)}'
     '&embedded=true';
 
-  // ── Page memory ────────────────────────────────────────────
-  Future<void> _loadSavedPage() async {
-    if (widget.pdfId == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getInt('$_prefPrefix${widget.pdfId}') ?? 1;
-    if (mounted) setState(() => _savedPage = saved);
-  }
-
-  Future<void> _savePage(int page) async {
-    if (widget.pdfId == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('$_prefPrefix${widget.pdfId}', page);
-  }
-
   @override
   void initState() {
     super.initState();
-    _loadSavedPage();
 
     _ctrl = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -87,17 +65,9 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.title,
-              style: const TextStyle(fontSize: 14, color: Colors.white),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-            if (_savedPage > 1)
-              Text('Resuming from page $_savedPage',
-                style: const TextStyle(fontSize: 10, color: AppColors.teal)),
-          ],
-        ),
+        title: Text(widget.title,
+          style: const TextStyle(fontSize: 14, color: Colors.white),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
         backgroundColor: AppColors.primaryDark,
         actions: [
           IconButton(
