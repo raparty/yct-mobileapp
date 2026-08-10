@@ -1,7 +1,7 @@
 name: yct_app
 description: Yoga Consciousness Trust — Official App
 publish_to: 'none'
-version: 1.4.1+9
+version: 1.4.2+10
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
