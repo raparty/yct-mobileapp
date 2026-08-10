@@ -41,18 +41,20 @@ void main() async {
       return true;
     };
 
-    await Future.wait([
-      Future(() => FirestoreService.init()),
-      RemoteConfigService.init(),
-      AuthService.init(),
-    ]);
+    // Firestore settings — synchronous, no network call, safe to call directly
+    FirestoreService.init();
 
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: AppColors.primaryDark,
       statusBarIconBrightness: Brightness.light,
     ));
 
+    // Launch app immediately — don't block on network calls
     runApp(const YCTApp());
+
+    // Auth and Remote Config fire in background after app is visible
+    unawaited(AuthService.init());
+    unawaited(RemoteConfigService.init());
 
   }, (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
