@@ -22,6 +22,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          cd ios && pod install --repo-update && cd ..
+
       - name: Install Apple Certificate
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -47,14 +52,7 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
-      - name: Update CocoaPods repo
-        run: |
-          cd ios
-          pod repo update
-          pod update Firebase/Firestore
-          cd ..
-
-      - name: Build IPA
+      - name: Build Signed IPA
         run: flutter build ipa --release
 
       - name: Find and Upload IPA
