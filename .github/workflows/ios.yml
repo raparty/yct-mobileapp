@@ -47,6 +47,13 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
+      - name: Update CocoaPods repo
+        run: |
+          cd ios
+          pod repo update
+          pod update Firebase/Firestore
+          cd ..
+
       - name: Build IPA
         run: flutter build ipa --release
 
