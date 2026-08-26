@@ -88,66 +88,82 @@ jobs:
           retention-days: 30
           path: build/debug-info/
 
-  # ── Job 2: Build iOS (unsigned IPA) ──────────────────────────────────────
+  # ── Job 2: Build iOS (Signed) and Upload to App Store ─────────────────────
   build_ios:
     name: Build iOS
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.6'
+          flutter-version: '3.44.8'
           channel: 'stable'
           cache: true
 
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Install Apple Certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/distribution.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+      - name: Install Provisioning Profile
+        env:
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          PP_PATH=$RUNNER_TEMP/YCT_Distribution.mobileprovision
+          echo -n "$APPLE_PROVISIONING_PROFILE" | base64 --decode -o $PP_PATH
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
       - name: Install CocoaPods
         run: |
           cd ios
-          pod install --repo-update
+          pod update
+          cd ..
 
-      - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign
-        continue-on-error: true
+      - name: Build Signed IPA
+        run: flutter build ipa --release
 
-      - name: Find and package Runner.app as IPA
-        run: |
-          echo "=== Searching for Runner.app everywhere ==="
-          find . -name "Runner.app" -type d 2>/dev/null
-
-          # Find Runner.app wherever Flutter put it
-          RUNNER_PATH=$(find . -name "Runner.app" -type d 2>/dev/null | grep -v "Payload" | head -1)
-
-          if [ -n "$RUNNER_PATH" ]; then
-            echo "Found Runner.app at: $RUNNER_PATH"
-            # Get absolute path
-            RUNNER_ABS=$(cd "$(dirname "$RUNNER_PATH")" && pwd)/$(basename "$RUNNER_PATH")
-            echo "Absolute path: $RUNNER_ABS"
-            # Check it has real content
-            echo "Runner.app size: $(du -sh "$RUNNER_ABS")"
-
-            mkdir -p /tmp/ipa_build/Payload
-            cp -r "$RUNNER_ABS" /tmp/ipa_build/Payload/
-            cd /tmp/ipa_build
-            zip -r /tmp/YCT-unsigned.ipa Payload/
-            echo "IPA size: $(du -sh /tmp/YCT-unsigned.ipa)"
-            echo "IOS_BUILD_SUCCESS=true" >> $GITHUB_ENV
-          else
-            echo "ERROR: Runner.app not found anywhere"
-            echo "IOS_BUILD_SUCCESS=false" >> $GITHUB_ENV
-          fi
-
-      - name: Upload IPA
-        if: env.IOS_BUILD_SUCCESS == 'true'
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: yct-ios-unsigned-ipa
+          name: yct-ios-signed-ipa
           retention-days: 30
-          path: /tmp/YCT-unsigned.ipa
+          path: build/ios/ipa/*.ipa
+
+      - name: Upload to App Store Connect
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -1)
+          echo "Found IPA at: $IPA_PATH"
+          if [ -z "$IPA_PATH" ]; then
+            echo "ERROR: No IPA found!"
+            exit 1
+          fi
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --username "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --asc-provider "$APPLE_TEAM_ID"
 
   # ── Job 3: Deploy Upload Worker ───────────────────────────────────────────
   deploy_worker:
