@@ -40,6 +40,12 @@
 		<key>NSAllowsArbitraryLoadsInWebContent</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>This app may require camera access through third-party libraries.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app uses microphone access required by audio playback libraries for spiritual discourse playback.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app may require photo library access through third-party libraries.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
