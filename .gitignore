@@ -32,3 +32,4 @@ ios/Runner/GoogleService-Info.plist
 **/ios/**/.symlinks/
 **/ios/**/DerivedData/
 **/ios/**/xcuserdata
+ios/Podfile.lock
