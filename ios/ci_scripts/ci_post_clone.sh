@@ -12,6 +12,9 @@ export PATH="$PATH:$HOME/flutter/bin"
 echo "=== Flutter version ==="
 flutter --version
 
+echo "=== Disable Swift Package Manager ==="
+flutter config --no-enable-swift-package-manager
+
 echo "=== Flutter pub get ==="
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 flutter pub get
