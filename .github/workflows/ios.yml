@@ -1,8 +1,6 @@
 name: iOS Build and Upload
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -21,11 +19,6 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Install CocoaPods
-        run: |
-          sudo gem install cocoapods
-          cd ios && pod install --repo-update && cd ..
 
       - name: Install Apple Certificate
         env:
@@ -63,6 +56,11 @@ jobs:
         run: |
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Found IPA at: $IPA_PATH"
+          if [ -z "$IPA_PATH" ]; then
+            echo "ERROR: No IPA found!"
+            find build/ios -name "*.ipa" 2>/dev/null
+            exit 1
+          fi
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
