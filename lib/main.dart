@@ -26,7 +26,7 @@ void main() async {
 
     await Firebase.initializeApp(
       options: FirebaseOptions(
-        apiKey:            'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWCO8',
+        apiKey:            'AIzaSyBF7Qn4Ytrys9WLuBU41G2KOuxBN0GWGO8',
         appId:             appId,
         messagingSenderId: '881638212469',
         projectId:         'yct-app',
@@ -41,11 +41,7 @@ void main() async {
       return true;
     };
 
-    await Future.wait([
-      Future(() => FirestoreService.init()),
-      RemoteConfigService.init(),
-      AuthService.init(),
-    ]);
+    FirestoreService.init();
 
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: AppColors.primaryDark,
@@ -53,6 +49,9 @@ void main() async {
     ));
 
     runApp(const YCTApp());
+
+    unawaited(AuthService.init());
+    unawaited(RemoteConfigService.init());
 
   }, (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);

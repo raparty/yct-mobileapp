@@ -1,19 +1,18 @@
 // ─────────────────────────────────────────
-// YCT — PDF Viewer (R1)
-// • Last-read page memory per magazine
-// • Reload button
-// • Open in browser fallback
+// YCT — PDF Viewer (R2)
+// • Tries Google Docs Viewer first
+// • Auto-falls back to direct browser open on error
+// • Reload and browser buttons always available
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/constants.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String title;
   final String pdfUrl;
-  final String? pdfId; // unique ID for page memory
+  final String? pdfId;
 
   const PdfViewerScreen({
     super.key,
@@ -29,53 +28,41 @@ class PdfViewerScreen extends StatefulWidget {
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final WebViewController _ctrl;
   bool _loading = true;
-  int _currentPage = 1;
-  int _totalPages  = 0;
-  int _savedPage   = 1;
-
-  static const String _prefPrefix = 'pdf_page_';
+  bool _failed = false;
 
   String get _viewerUrl =>
     'https://docs.google.com/viewer'
     '?url=${Uri.encodeComponent(widget.pdfUrl)}'
     '&embedded=true';
 
-  // ── Page memory ────────────────────────────────────────────
-  Future<void> _loadSavedPage() async {
-    if (widget.pdfId == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getInt('$_prefPrefix${widget.pdfId}') ?? 1;
-    if (mounted) setState(() => _savedPage = saved);
-  }
-
-  Future<void> _savePage(int page) async {
-    if (widget.pdfId == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('$_prefPrefix${widget.pdfId}', page);
-  }
-
   @override
   void initState() {
     super.initState();
-    _loadSavedPage();
+    _initWebView();
+  }
 
+  void _initWebView() {
     _ctrl = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent(
         'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 '
         '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(NavigationDelegate(
-        onPageStarted: (_) => setState(() => _loading = true),
+        onPageStarted: (_) => setState(() { _loading = true; _failed = false; }),
         onPageFinished: (_) => setState(() => _loading = false),
         onWebResourceError: (e) {
-          if (e.isForMainFrame == true) setState(() => _loading = false);
+          if (e.isForMainFrame == true) {
+            setState(() { _loading = false; _failed = true; });
+            // Auto-open in browser on connection failure
+            _openBrowser();
+          }
         },
       ))
       ..loadRequest(Uri.parse(_viewerUrl));
   }
 
   void _reload() {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _failed = false; });
     _ctrl.loadRequest(Uri.parse(_viewerUrl));
   }
 
@@ -87,17 +74,9 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.title,
-              style: const TextStyle(fontSize: 14, color: Colors.white),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-            if (_savedPage > 1)
-              Text('Resuming from page $_savedPage',
-                style: const TextStyle(fontSize: 10, color: AppColors.teal)),
-          ],
-        ),
+        title: Text(widget.title,
+          style: const TextStyle(fontSize: 14, color: Colors.white),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
         backgroundColor: AppColors.primaryDark,
         actions: [
           IconButton(
@@ -112,7 +91,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       ),
       body: Stack(children: [
         WebViewWidget(controller: _ctrl),
-        if (_loading)
+        if (_loading && !_failed)
           Container(
             color: Colors.grey.shade900,
             child: const Center(child: Column(
@@ -126,6 +105,35 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 Text('This may take 10–20 seconds on first load',
                   style: TextStyle(color: Colors.white38, fontSize: 11)),
               ]))),
+        if (_failed)
+          Container(
+            color: Colors.grey.shade900,
+            child: Center(child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.picture_as_pdf, color: Colors.white38, size: 48),
+                const SizedBox(height: 16),
+                const Text('Opening PDF in browser...',
+                  style: TextStyle(color: Colors.white70, fontSize: 15)),
+                const SizedBox(height: 6),
+                const Text('Google Docs Viewer unavailable on this network',
+                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                  textAlign: TextAlign.center),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _openBrowser,
+                  icon: const Icon(Icons.open_in_browser),
+                  label: const Text('Open PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryMid,
+                    foregroundColor: Colors.white)),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _reload,
+                  child: const Text('Try again in viewer',
+                    style: TextStyle(color: AppColors.teal))),
+              ])),
+          ),
       ]),
       bottomNavigationBar: Container(
         color: AppColors.primaryDark,
