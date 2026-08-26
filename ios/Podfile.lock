@@ -1309,7 +1309,7 @@ PODS:
     - PromisesSwift (~> 2.1)
   - FirebaseSharedSwift (11.15.0)
   - Flutter (1.0.0)
-  - GoogleDataTransport (10.1.0):
+  - GoogleDataTransport (10.1.1):
     - nanopb (~> 3.30910.0)
     - PromisesObjC (~> 2.4)
   - GoogleUtilities/AppDelegateSwizzler (8.1.2):
@@ -1552,7 +1552,7 @@ SPEC CHECKSUMS:
   FirebaseSessions: b9a92c1c51bbb81e78fc3142cda6d925d700f8e7
   FirebaseSharedSwift: e17c654ef1f1a616b0b33054e663ad1035c8fd40
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
+  GoogleDataTransport: a24e58982ab3ba2f64d79613e027fe7f57e88539
   GoogleUtilities: 766ace00c6b10d8148408f329d10c4f051931850
   "gRPC-C++": cc207623316fb041a7a3e774c252cf68a058b9e8
   gRPC-Core: 860978b7db482de8b4f5e10677216309b5ff6330
