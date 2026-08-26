@@ -16,7 +16,10 @@ echo "=== Flutter pub get ==="
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 flutter pub get
 
-echo "=== Installing CocoaPods dependencies ==="
+echo "=== Flutter generate iOS config ==="
+flutter build ios --config-only --release
+
+echo "=== Installing CocoaPods ==="
 cd "$CI_PRIMARY_REPOSITORY_PATH/ios"
 pod install --repo-update
 
