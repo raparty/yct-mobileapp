@@ -8,7 +8,7 @@ on:
 jobs:
   build_ios:
     runs-on: macos-15
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,15 +50,17 @@ jobs:
       - name: Build IPA
         run: flutter build ipa --release
 
-      - name: Upload to App Store Connect
+      - name: Find and Upload IPA
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -1)
+          echo "Found IPA at: $IPA_PATH"
           xcrun altool --upload-app \
             --type ios \
-            --file build/ios/ipa/*.ipa \
+            --file "$IPA_PATH" \
             --username "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --asc-provider "$APPLE_TEAM_ID"
