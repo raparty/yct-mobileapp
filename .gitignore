@@ -32,5 +32,3 @@ ios/Runner/GoogleService-Info.plist
 **/ios/**/.symlinks/
 **/ios/**/DerivedData/
 **/ios/**/xcuserdata
-ios/Podfile.lock
-assets/app_icon.png
