@@ -20,7 +20,6 @@ class GurudevScreen extends StatelessWidget {
                   colors: [AppColors.primaryDark, AppColors.primary])),
               child: SafeArea(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const SizedBox(height: 40),
-                // Real Guruji photo
                 Container(
                   width: 130, height: 130,
                   decoration: BoxDecoration(
@@ -50,12 +49,12 @@ class GurudevScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             _section('About Gurudev',
-              'Yogacharya Sri Raparthi Rama Rao is the founder of Yoga Consciousness Trust (YCT) and a revered spiritual master in the tradition of Anushtana Yoga Vedanta.\n\n'
-              'Born with a deep inclination towards spiritual practice, Gurudev dedicated his life to exploring the depths of yoga and Vedantic philosophy, ultimately synthesising these into the comprehensive system of Anushtana Yoga Vedanta — a practical path for self-realisation accessible to all.\n\n'
-              'Under his guidance, YCT has grown from a small ashram in Vizinigiri to an organisation with centres across Andhra Pradesh and Telangana, affiliated with multiple universities and serving thousands of seekers.'),
+              'Yogacharya Sri Raparthi Rama Rao is a revered spiritual master in the Himalayan tradition of Sri Ramlal Prabhuji. He is the founder of Yoga Consciousness Trust (YCT) and exponent of Anushtana Yoga Vedanta, an integrated approach to achieve goal of life, the Self Realization in this life itself.\n\n'
+              'Born with deep inclination towards spiritual practice, Gurudev dedicated his life to exploring the depths of yoga and Vedantic philosophy, ultimately synthesising these into the comprehensive system of Anushtana Yoga Vedanta — a practical path for self-realisation accessible to all.\n\n'
+              'Under his guidance, YCT has grown from a small Ashram in Vizinigiri to an organisation with centres across Andhra Pradesh and Telangana, affiliated with multiple Universities and serving thousands of seekers.'),
             const SizedBox(height: 12),
             _section('Anushtana Yoga Vedanta',
-              'Anushtana Yoga Vedanta is the methodology developed by Gurudev that integrates the practical aspects of Yoga — including asana, pranayama, dharana, and dhyana — with the philosophical wisdom of Vedanta.\n\n'
+              'Anushtana Yoga Vedanta is the methodology developed by Gurudev that integrates the practical aspects of Yoga — including asana, pranayama, dharana and dhyana — with the philosophical wisdom of Vedanta.\n\n'
               'This integrated approach enables the practitioner to purify the body and mind, develop discriminative wisdom (viveka), and ultimately realise the true nature of the Self (Atma Sakshatkar).'),
             const SizedBox(height: 12),
             _section('Teachings',
@@ -63,12 +62,13 @@ class GurudevScreen extends StatelessWidget {
               'Key teachings include:\n'
               '• The nature of karma and its role in spiritual evolution\n'
               '• Practical techniques for meditation and self-enquiry\n'
-              '• The three paths: Karma Yoga, Bhakti Yoga, and Jnana Yoga\n'
+              '• Integration of four paths: Karma Yoga, Raja Yoga, Bhakti Yoga and Jnana Yoga\n'
               '• The importance of Guru-Shishya relationship\n'
-              '• Vedantic understanding of consciousness and reality'),
+              '• Vedantic understanding of Consciousness and Reality'),
             const SizedBox(height: 12),
             _section('Legacy',
-              'Gurudev\'s Aradhana is observed on 26th October each year, when thousands of devotees gather at Yoga Chaitanyaramam, Vizinigiri.\n\n'
+              'Gurudev\'s Birthday is observed on 30th September each year, when thousands of devotees gather at Yoga Chaitanyaramam, Vizinigiri. He attained Maha Samadhi on 8th October, 2014.\n\n'
+              'Initiated by Gurudev, YCT performs collective Upanayanams to all irrespective of caste, creed and gender.\n\n'
               'His teachings continue through YCT\'s network of institutes, residential programmes, and publications that reach seekers across the world.'),
             const SizedBox(height: 80),
           ]),

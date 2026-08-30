@@ -25,26 +25,28 @@ class AboutYctScreen extends StatelessWidget {
             child: Text('Est. 1990 · Vijinigiri, Andhra Pradesh', style: TextStyle(fontSize: 12, color: AppColors.textMid)))),
           const SizedBox(height: 20),
           _card('Our Mission',
-            'To spread the ancient wisdom of Anushtana Yoga Vedanta to all seekers, making the path of self-realisation accessible through practical teaching, residential programmes, and publications.'),
+            'To spread the ancient wisdom of Anushtana Yoga Vedanta to all seekers, making the path of self-realisation accessible through practical teaching, residential programmes and publications.'),
           const SizedBox(height: 10),
-          _card('Our Institutes', 
+          _card('Our Institutes',
             '• Academy of Yoga Consciousness, Bhimili — Affiliated to Andhra University\n'
             '• International Institute of Yoga Research & Training, Bhimili\n'
-            '• Sri Raparti Rama Institute of Yoga, Kanavaram — Adi Kavi Nannaya University\n'
-            '• Sri Raparti Rama Institute of Yoga, Kakinada — Adi Kavi Nannaya University\n'
-            '• Sri Raparti Rama Academy of Yogic Sciences, Nandyal — Rayalaseema University'),
+            '• Sri Raparti Rama Institute of Yoga, Kanavaram — Affiliated to Adi Kavi Nannaya University\n'
+            '• Sri Raparti Rama Academy of Yogic Sciences, Nandyal — Affiliated to Rayalaseema University'),
           const SizedBox(height: 10),
           _card('Programmes',
             'YCT offers a wide range of residential and online programmes including:\n\n'
-            '• Antar Mouna — silent retreat\n'
-            '• Chaitanya Prakasha Yoga — dharana & meditation\n'
+            '• Antar Mouna — Silent retreat\n'
+            '• Chaitanya Prakasha Yoga — Dharana & Meditation\n'
             '• Anusthana Yoga Vedanta Course (AYVC)\n'
+            '• One Year PG Diploma in Yoga affiliated to various Universities\n'
+            '• Three Month Yoga Certificate Course\n'
             '• Health Management Camps through Yoga\n'
-            '• Personality Development Camps for Youth\n'
-            '• Sadhana Saptaha — 7-day intensive retreats'),
+            '• Personality Development Camps for Children\n'
+            '• Life Skill Development Camps for Youth\n'
+            '• Sadhana Saptaha — 7-day intensive spiritual retreats'),
           const SizedBox(height: 10),
           _card('Publications',
-            'YCT publishes the monthly journal "Yoga Chaitanya Prabha" (యోగ చైతన్య ప్రభ) since 1990, along with numerous books in Telugu, English, and bilingual formats covering the complete teachings of Anushtana Yoga Vedanta.'),
+            'YCT publishes the bi-lingual monthly journal "Yoga Chaitanya Prabha" (యోగ చైతన్య ప్రభ) since 1996, along with numerous books in Telugu, English and bilingual formats covering the complete teachings of Anushtana Yoga Vedanta.'),
           const SizedBox(height: 80),
         ]),
       ),

@@ -14,49 +14,55 @@ class _CentersScreenState extends State<CentersScreen> {
   static const _centers = [
     _Center('Vizinigiri — Head Quarters', 'Yoga Chaitanyaramam',
       'Vizinigiri, Jami Mandal, Vizianagaram Dt. – 535250',
-      '+918966268923', true),
+      '+91 8966268923', true),
     _Center('Vizianagaram', 'Yoga Consciousness Trust',
       '# 20-21-19/3, Vinayak Nagar, Ring Road, Near Bhashyam School, Vizianagaram – 535002',
-      '+919247839399', false),
+      '+91 9247839399', false),
     _Center('Srikakulam', 'Yoga Consciousness Trust',
-      'Dr. B.R.Ambedkar Bhavan, Opposite Zilla Parishad, A.P.H.B Colony, Srikakulam',
-      '+919963230973', false),
+      'LIG-1-53, Near Old TMPH School, APHB Colony, Srikakulam',
+      '+91 8247576122, +91 9963230973', false),
     _Center('Bheemili', 'International Institute of Yoga Research & Training',
       'Yoga Chaitanyagiri, Krishna Colony, Dorathota Road, Bheemili – 531163',
-      '+918933228222', false),
-    _Center('Visakhapatnam — Beach Road', 'Yoga Consciousness Trust',
+      '+91 8933228222, +91 94406 43531', false),
+    _Center('Visakhapatnam — VUDA Park', 'Yoga Consciousness Trust',
       'Phase II, New VUDA Park, Beach Road, Visakhapatnam – 530023',
-      '+919440179914', false),
+      '+91 9440179914', false),
     _Center('Visakhapatnam — Lalitha Nagar', 'Yoga Consciousness Trust',
       'Sri Krishna Vidhya Mandir, Lalitha Temple Road, Lalitha Nagar, Visakhapatnam – 16',
-      '+919492534323', false),
+      '+91 9492534323', false),
     _Center('Visakhapatnam — Seethammadhara', 'Yoga Consciousness Trust',
       'Tamil Kalai Mandram, Abhaya Anjaneya Temple Road, Seethammadhara, Visakhapatnam',
-      '+919959031988', false),
+      '+91 9959031988', false),
+    _Center('Visakhapatnam — Gajuwaka', 'Yoga Consciousness Trust',
+      'D No: 27-36-1/4, Street No 2, Chaitanya Nagar, Behind CMR Central, Gajuwaka, Visakhapatnam',
+      '+91 9705813160', false),
+    _Center('Visakhapatnam — Madhurawada', 'Yoga Consciousness Trust',
+      'Midhilapuri VUDA Colony, Bank of India side Road, Madhurawada, Visakhapatnam',
+      '+91 7981652319', false),
     _Center('Hyderabad — Kondapur', 'Yoga Chaitanya Sadanam',
       'Plot No. 347, H.M.D.A. Colony, Kondapur Village, Ghatkesar Mandal',
-      '+918415329306', false),
+      '+91 98496 48102', false),
     _Center('Hyderabad — Uppal', 'Yoga Consciousness Trust',
       'East Kalyanpuri Community Hall, Uppal',
-      '+918801375881', false),
+      '+91 8801375881', false),
     _Center('Nandyal', 'Yoga Chaitanya Kendra',
       'Yoga Chaitanya Nagar, Baratha Matha Temple Road, Tekke, Nandyal, Kurnool Dt. – 518501',
-      '+918919771823', false),
+      '+91 8919771823, +91 7396962838', false),
     _Center('Kurnool', 'Yoga Consciousness Trust',
       'Kurnool, Andhra Pradesh',
-      '+918639366445', false),
+      '+91 8639366445', false),
     _Center('Kanavaram — Godavari', 'Yoga Consciousness Trust',
       'Rajugari Thota, Kanavaram Village, Rajanagaram Mandal, East Godavari District',
-      '+919949203222', false),
-    _Center('Kakinada', 'Yoga Consciousness Trust',
+      '+91 7382308440', false),
+    _Center('Kakinada — Santhi Nagar', 'Yoga Consciousness Trust',
       '3-16c-33, Santhi Nagar, Kakinada, East Godavari District',
-      '+919849340359', false),
-    _Center('Rajahmundry', 'Yoga Consciousness Trust',
-      'Dharmamchara Community Hall, Near Prakasam Round Park, Prakasam Nagar, Rajahmundry',
-      '+917382308440', false),
+      '+91 9849340359', false),
+    _Center('Kakinada — Rama Rao Peta', 'Yoga Consciousness Trust',
+      'Gayatri Bhavan, Rama Rao Peta, Kakinada',
+      '+91 9849898934', false),
     _Center('Eluru', 'Yoga Consciousness Trust',
       'Prasanthi Hospital, 3rd Floor, Near New Bus Stand, Opp. Bhashyam School, NR Pet, Eluru',
-      '+919491606925', false),
+      '+91 9491606925', false),
   ];
 
   List<_Center> get _filtered => _search.isEmpty
@@ -72,7 +78,6 @@ class _CentersScreenState extends State<CentersScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(title: const Text('Our Centers'), backgroundColor: AppColors.primary),
       body: Column(children: [
-        // Search
         Padding(
           padding: const EdgeInsets.fromLTRB(16,12,16,8),
           child: TextField(
@@ -119,7 +124,9 @@ class _CenterCard extends StatelessWidget {
   const _CenterCard({required this.center});
 
   Future<void> _call() async {
-    final uri = Uri.parse('tel:${center.phone}');
+    // Use first phone number if multiple listed
+    final phone = center.phone.split(',').first.trim().replaceAll(' ', '');
+    final uri = Uri.parse('tel:$phone');
     if (await canLaunchUrl(uri)) launchUrl(uri);
   }
 
@@ -160,9 +167,15 @@ class _CenterCard extends StatelessWidget {
             Expanded(child: Text(center.address,
               style: const TextStyle(fontSize: 12, color: AppColors.textLight, height: 1.4))),
           ]),
+          const SizedBox(height: 4),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.phone_outlined, size: 14, color: AppColors.textMuted),
+            const SizedBox(width: 4),
+            Expanded(child: Text(center.phone,
+              style: const TextStyle(fontSize: 12, color: AppColors.textLight, height: 1.4))),
+          ]),
           const SizedBox(height: 10),
           Row(children: [
-            // Call button
             Expanded(child: GestureDetector(
               onTap: _call,
               child: Container(
@@ -170,15 +183,13 @@ class _CenterCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(8)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.phone, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 6),
-                  Text(center.phone.replaceFirst('+91', '+91 '),
-                    style: const TextStyle(fontSize: 11, color: AppColors.primaryDark, fontWeight: FontWeight.w500)),
+                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.phone, size: 14, color: AppColors.primary),
+                  SizedBox(width: 6),
+                  Text('Call', style: TextStyle(fontSize: 11, color: AppColors.primaryDark, fontWeight: FontWeight.w500)),
                 ]),
               ))),
             const SizedBox(width: 8),
-            // Maps button
             GestureDetector(
               onTap: _maps,
               child: Container(
