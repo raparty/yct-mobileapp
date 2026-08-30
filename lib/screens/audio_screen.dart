@@ -7,7 +7,7 @@
 // • Error state + retry
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:audioplayers/audioplayers.dart' hide AVAudioSessionCategory, AVAudioSessionCategoryOptions, AVAudioSessionMode, AVAudioSessionRouteSharingPolicy, AVAudioSessionSetActiveOptions;
 import 'package:audio_session/audio_session.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../core/constants.dart';
