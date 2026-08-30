@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:audio_session/audio_session.dart' hide AVAudioSessionCategory, AVAudioSessionCategoryOptions, AVAudioSessionMode;
+import 'package:audio_session/audio_session.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
@@ -59,6 +59,14 @@ class _AudioScreenState extends State<AudioScreen> {
   Future<void> _initAudioSession() async {
     final session = await AudioSession.instance;
     await session.configure(AudioSessionConfiguration(
+      // ── iOS Background Audio ──
+      avAudioSessionCategory: AVAudioSessionCategory.playback,
+      avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.mixWithOthers,
+      avAudioSessionMode: AVAudioSessionMode.defaultMode,
+      avAudioSessionRouteSharingPolicy:
+          AVAudioSessionRouteSharingPolicy.defaultPolicy,
+      avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+      // ── Android ──
       androidAudioAttributes: const AndroidAudioAttributes(
         contentType: AndroidAudioContentType.music,
         flags: AndroidAudioFlags.none,
