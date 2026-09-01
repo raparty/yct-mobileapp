@@ -5,7 +5,6 @@ class RemoteConfigService {
   static final _rc = FirebaseRemoteConfig.instance;
 
   static const _defaults = {
-    'subscription_enabled':  false,
     'publications_enabled':  false, // Books tab — off by default
     'force_update_version':  '',
     'force_update_message':  '',
@@ -26,7 +25,6 @@ class RemoteConfigService {
     }
   }
 
-  static bool   get subscriptionEnabled => _rc.getBool('subscription_enabled');
   static bool   get publicationsEnabled => _rc.getBool('publications_enabled');
   static String get forceUpdateVersion  => _rc.getString('force_update_version');
   static String get forceUpdateMessage  => _rc.getString('force_update_message');

@@ -88,12 +88,17 @@ class _MoreScreenState extends State<MoreScreen> {
                 color: AppColors.textMid, letterSpacing: 0.5)),
               const SizedBox(height: 8),
               _MenuCard(items: [
+<<<<<<< Updated upstream
                 _MenuItem(Icons.shopping_bag_outlined, 'Buy Publications',
                   'Order books and magazines online',
                   () => _open('${_contact.website}/shop')),
                 _MenuItem(Icons.subscriptions_outlined, 'Subscribe to Magazine',
                   'Get యోగ చైతన్య ప్రభ monthly',
                   () => _open('mailto:${_contact.email}')),
+=======
+                _MenuItem(Icons.shopping_bag_outlined, 'Buy Publications', 'Order books and magazines online', () => _open('${AppStrings.website}/shop')),
+                _MenuItem(Icons.mail_outlined, 'Magazine Enquiry', 'Contact us about యోగ చైతన్య ప్రభ', () => _open('mailto:info@yogaconsciousness.org')),
+>>>>>>> Stashed changes
               ]),
               const SizedBox(height: 20),
               const Center(child: Text('Version 1.5.2 · Yoga Consciousness Trust',
