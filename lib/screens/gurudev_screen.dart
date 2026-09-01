@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../core/content_service.dart';
 
-class GurudevScreen extends StatelessWidget {
+class GurudevScreen extends StatefulWidget {
   const GurudevScreen({super.key});
+  @override
+  State<GurudevScreen> createState() => _GurudevScreenState();
+}
+
+class _GurudevScreenState extends State<GurudevScreen> {
+  GurudevContent? _content;
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final c = await ContentService.fetchGurudev();
+    if (mounted) setState(() { _content = c; _loading = false; });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final c = _content ?? GurudevContent.fallback();
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: CustomScrollView(slivers: [
         SliverAppBar(
-          expandedHeight: 280,
-          pinned: true,
+          expandedHeight: 280, pinned: true,
           backgroundColor: AppColors.primary,
           flexibleSpace: FlexibleSpaceBar(
             background: Container(
@@ -26,11 +42,10 @@ class GurudevScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.saffron, width: 3),
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16)]),
-                  child: ClipOval(
-                    child: Image.asset('assets/images/guruji.jpg', fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: AppColors.primaryMid,
-                        child: const Icon(Icons.person, color: Colors.white, size: 60))))),
+                  child: ClipOval(child: Image.asset('assets/images/guruji.jpg', fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.primaryMid,
+                      child: const Icon(Icons.person, color: Colors.white, size: 60))))),
                 const SizedBox(height: 14),
                 const Text('పూజ్య గురుదేవులు',
                   style: TextStyle(color: AppColors.teal, fontSize: 12)),
@@ -45,34 +60,26 @@ class GurudevScreen extends StatelessWidget {
             ),
           ),
         ),
-        SliverToBoxAdapter(child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _section('About Gurudev',
-              'Yogacharya Sri Raparthi Rama Rao is a revered spiritual master in the Himalayan tradition of Sri Ramlal Prabhuji. He is the founder of Yoga Consciousness Trust (YCT) and exponent of Anushtana Yoga Vedanta, an integrated approach to achieve goal of life, the Self Realization in this life itself.\n\n'
-              'Born with deep inclination towards spiritual practice, Gurudev dedicated his life to exploring the depths of yoga and Vedantic philosophy, ultimately synthesising these into the comprehensive system of Anushtana Yoga Vedanta — a practical path for self-realisation accessible to all.\n\n'
-              'Under his guidance, YCT has grown from a small Ashram in Vizinigiri to an organisation with centres across Andhra Pradesh and Telangana, affiliated with multiple Universities and serving thousands of seekers.'),
-            const SizedBox(height: 12),
-            _section('Anushtana Yoga Vedanta',
-              'Anushtana Yoga Vedanta is the methodology developed by Gurudev that integrates the practical aspects of Yoga — including asana, pranayama, dharana and dhyana — with the philosophical wisdom of Vedanta.\n\n'
-              'This integrated approach enables the practitioner to purify the body and mind, develop discriminative wisdom (viveka), and ultimately realise the true nature of the Self (Atma Sakshatkar).'),
-            const SizedBox(height: 12),
-            _section('Teachings',
-              'Gurudev\'s teachings are preserved in the monthly journal "Yoga Chaitanya Prabha" (యోగ చైతన్య ప్రభ), numerous books in Telugu and English, and thousands of audio discourses.\n\n'
-              'Key teachings include:\n'
-              '• The nature of karma and its role in spiritual evolution\n'
-              '• Practical techniques for meditation and self-enquiry\n'
-              '• Integration of four paths: Karma Yoga, Raja Yoga, Bhakti Yoga and Jnana Yoga\n'
-              '• The importance of Guru-Shishya relationship\n'
-              '• Vedantic understanding of Consciousness and Reality'),
-            const SizedBox(height: 12),
-            _section('Legacy',
-              'Gurudev\'s Birthday is observed on 30th September each year, when thousands of devotees gather at Yoga Chaitanyaramam, Vizinigiri. He attained Maha Samadhi on 8th October, 2014.\n\n'
-              'Initiated by Gurudev, YCT performs collective Upanayanams to all irrespective of caste, creed and gender.\n\n'
-              'His teachings continue through YCT\'s network of institutes, residential programmes, and publications that reach seekers across the world.'),
-            const SizedBox(height: 80),
-          ]),
-        )),
+        if (_loading)
+          const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
+        else
+          SliverToBoxAdapter(child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _section('About Gurudev',
+                '${c.aboutParagraph1}\n\n${c.aboutParagraph2}\n\n${c.aboutParagraph3}'),
+              const SizedBox(height: 12),
+              _section(c.avSection,
+                '${c.avParagraph1}\n\n${c.avParagraph2}'),
+              const SizedBox(height: 12),
+              _section('Teachings',
+                '${c.teachingsIntro}\n${c.teachingsBullets.map((b) => '• $b').join('\n')}'),
+              const SizedBox(height: 12),
+              _section('Legacy', c.legacyText),
+              const SizedBox(height: 80),
+            ]),
+          )),
       ]),
     );
   }

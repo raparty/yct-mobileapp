@@ -1,11 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/constants.dart';
+import '../core/content_service.dart';
 import 'gurudev_screen.dart';
 import 'about_yct_screen.dart';
 
-class MoreScreen extends StatelessWidget {
+class MoreScreen extends StatefulWidget {
   const MoreScreen({super.key});
+  @override
+  State<MoreScreen> createState() => _MoreScreenState();
+}
+
+class _MoreScreenState extends State<MoreScreen> {
+  ContactContent _contact = ContactContent.fallback();
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final c = await ContentService.fetchContact();
+    if (mounted) setState(() => _contact = c);
+  }
 
   Future<void> _open(String url) async {
     final uri = Uri.parse(url);
@@ -27,44 +42,61 @@ class MoreScreen extends StatelessWidget {
                 decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white,
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8)]),
                 child: ClipOval(child: Image.asset('assets/images/yct_logo.png', fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Center(child: Text('YCT', style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold)))))),
+                  errorBuilder: (_, __, ___) => const Center(
+                    child: Text('YCT', style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold)))))),
               const SizedBox(height: 10),
-              const Text(AppStrings.appName, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+              const Text(AppStrings.appName,
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
-              Text(AppStrings.appNameTelugu, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13)),
+              Text(AppStrings.appNameTelugu,
+                style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13)),
             ]),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('ABOUT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMid, letterSpacing: 0.5)),
+              const Text('ABOUT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: AppColors.textMid, letterSpacing: 0.5)),
               const SizedBox(height: 8),
               _MenuCard(items: [
-                _MenuItem(Icons.person_outline, 'About Gurudev', 'Life and teachings of Yogacharya Sri Raparthi Rama Rao',
+                _MenuItem(Icons.person_outline, 'About Gurudev',
+                  'Life and teachings of Yogacharya Sri Raparthi Rama Rao',
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GurudevScreen()))),
-                _MenuItem(Icons.info_outline, 'About YCT', 'Our mission, institutes and programmes',
+                _MenuItem(Icons.info_outline, 'About YCT',
+                  'Our mission, institutes and programmes',
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutYctScreen()))),
-                _MenuItem(Icons.school_outlined, 'Anushtana Yoga Vedanta', 'Our methodology explained in Gurudev section',
+                _MenuItem(Icons.school_outlined, 'Anushtana Yoga Vedanta',
+                  'Our methodology explained in Gurudev section',
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GurudevScreen()))),
               ]),
               const SizedBox(height: 20),
-              const Text('CONTACT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMid, letterSpacing: 0.5)),
+              const Text('CONTACT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: AppColors.textMid, letterSpacing: 0.5)),
               const SizedBox(height: 8),
               _MenuCard(items: [
-                _MenuItem(Icons.language, 'Website', AppStrings.website, () => _open(AppStrings.website)),
-                _MenuItem(Icons.chat_outlined, 'WhatsApp', 'Chat with us', () => _open('https://wa.me/919492448840')),
-                _MenuItem(Icons.email_outlined, 'Email', 'info@yogaconsciousness.org', () => _open('mailto:info@yogaconsciousness.org')),
-                _MenuItem(Icons.phone_outlined, 'Phone', '+91 89662 68923', () => _open('tel:+918966268923')),
+                _MenuItem(Icons.language, 'Website', _contact.website,
+                  () => _open(_contact.website)),
+                _MenuItem(Icons.chat_outlined, 'WhatsApp', 'Chat with us',
+                  () => _open(_contact.whatsapp)),
+                _MenuItem(Icons.email_outlined, 'Email', _contact.email,
+                  () => _open('mailto:${_contact.email}')),
+                _MenuItem(Icons.phone_outlined, 'Phone', _contact.phone,
+                  () => _open('tel:${_contact.phone.replaceAll(' ', '').replaceAll('+', '+')}')),
               ]),
               const SizedBox(height: 20),
-              const Text('PUBLICATIONS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMid, letterSpacing: 0.5)),
+              const Text('PUBLICATIONS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: AppColors.textMid, letterSpacing: 0.5)),
               const SizedBox(height: 8),
               _MenuCard(items: [
-                _MenuItem(Icons.shopping_bag_outlined, 'Buy Publications', 'Order books and magazines online', () => _open('${AppStrings.website}/shop')),
-                _MenuItem(Icons.subscriptions_outlined, 'Subscribe to Magazine', 'Get యోగ చైతన్య ప్రభ monthly', () => _open('mailto:info@yogaconsciousness.org')),
+                _MenuItem(Icons.shopping_bag_outlined, 'Buy Publications',
+                  'Order books and magazines online',
+                  () => _open('${_contact.website}/shop')),
+                _MenuItem(Icons.subscriptions_outlined, 'Subscribe to Magazine',
+                  'Get యోగ చైతన్య ప్రభ monthly',
+                  () => _open('mailto:${_contact.email}')),
               ]),
               const SizedBox(height: 20),
-              const Center(child: Text('Version 1.5.0 · Yoga Consciousness Trust',
+              const Center(child: Text('Version 1.5.2 · Yoga Consciousness Trust',
                 style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
               const SizedBox(height: 80),
             ]),
@@ -85,17 +117,22 @@ class _MenuCard extends StatelessWidget {
   const _MenuCard({required this.items});
   @override
   Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: AppColors.border)),
     child: Column(children: items.asMap().entries.map((e) => Column(children: [
       ListTile(
         leading: Container(width: 36, height: 36,
           decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(8)),
           child: Icon(e.value.icon, color: AppColors.primary, size: 18)),
-        title: Text(e.value.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-        subtitle: Text(e.value.subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textLight), maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(e.value.title,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+        subtitle: Text(e.value.subtitle,
+          style: const TextStyle(fontSize: 11, color: AppColors.textLight),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
         trailing: const Icon(Icons.arrow_forward_ios, size: 13, color: AppColors.textMuted),
         onTap: e.value.onTap),
-      if (e.key < items.length - 1) const Divider(height: 1, indent: 64, color: AppColors.border),
+      if (e.key < items.length - 1)
+        const Divider(height: 1, indent: 64, color: AppColors.border),
     ])).toList()),
   );
 }
