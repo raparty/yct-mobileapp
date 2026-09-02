@@ -1,6 +1,9 @@
 // ─────────────────────────────────────────
 // YCT — Cover Image Widget
-// Shows real image if available, else colored placeholder
+// Priority order:
+// 1. Specific cover uploaded for this issue
+// 2. Generic monthly cover from R2 (1.jpeg to 12.jpeg)
+// 3. Colored placeholder (if R2 cover also fails)
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
@@ -10,6 +13,7 @@ class MagazineCover extends StatelessWidget {
   final Color fallbackColor;
   final String month;
   final int year;
+  final int monthNumber; // 1-12, used to pick generic cover
   final double borderRadius;
 
   const MagazineCover({
@@ -18,30 +22,43 @@ class MagazineCover extends StatelessWidget {
     required this.fallbackColor,
     required this.month,
     required this.year,
+    required this.monthNumber,
     this.borderRadius = 8,
   });
 
+  // Generic cover URL based on month (1-12)
+  String get _genericCoverUrl {
+    final m = ((monthNumber - 1) % 12 + 1).clamp(1, 12);
+    return '${R2Config.baseUrl}/covers/$m.jpeg';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    final hasSpecificCover = imageUrl != null && imageUrl!.isNotEmpty;
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: hasImage
-          ? Image.network(
-              imageUrl!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              loadingBuilder: (_, child, progress) => progress == null
-                  ? child
-                  : Container(
-                      color: fallbackColor.withOpacity(0.3),
-                      child: const Center(child: SizedBox(
-                        width: 18, height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.primary)))),
-              errorBuilder: (_, __, ___) => _placeholder(),
-            )
+      child: hasSpecificCover
+          ? _networkImage(imageUrl!, fallbackToGeneric: true)
+          : _networkImage(_genericCoverUrl, fallbackToGeneric: false),
+    );
+  }
+
+  Widget _networkImage(String url, {required bool fallbackToGeneric}) {
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      loadingBuilder: (_, child, progress) => progress == null
+          ? child
+          : Container(
+              color: fallbackColor.withOpacity(0.3),
+              child: const Center(child: SizedBox(
+                width: 18, height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2, color: AppColors.primary)))),
+      errorBuilder: (_, __, ___) => fallbackToGeneric
+          ? _networkImage(_genericCoverUrl, fallbackToGeneric: false)
           : _placeholder(),
     );
   }

@@ -214,6 +214,7 @@ class _MagTab extends StatelessWidget {
                     fallbackColor: mag.coverColor,
                     month:         mag.displayMonth,
                     year:          mag.year,
+                    monthNumber:   mag.month,
                     borderRadius:  10)),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(8,6,8,8),
