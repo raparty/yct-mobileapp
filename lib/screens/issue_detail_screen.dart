@@ -37,6 +37,7 @@ class IssueDetailScreen extends StatelessWidget {
                     fallbackColor: mag.coverColor,
                     month:         mag.displayMonth,
                     year:          mag.year,
+                    monthNumber:   mag.month,
                     borderRadius:  3)),
                 const SizedBox(height: 12),
                 Text('${mag.titleTelugu} — Vol. ${mag.volume}',

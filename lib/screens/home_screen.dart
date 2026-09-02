@@ -205,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 fallbackColor: mag.coverColor,
                 month:         mag.displayMonth,
                 year:          mag.year,
+                monthNumber:   mag.month,
                 borderRadius:  8)),
             const SizedBox(height: 4),
             Text(mag.titleTelugu, style: const TextStyle(fontSize: 10, color: AppColors.textDark),
