@@ -285,18 +285,18 @@ const HTML = `<!DOCTYPE html>
   <div class="panel" id="panel-quotes">
     <div class="card">
       <h3>Add Daily Quote</h3>
-      <p style="font-size:12px;color:#888;margin-bottom:12px">Add Gurudev's quotes. The app picks one per day automatically. If fewer than 365 are uploaded, quotes cycle through what's available.</p>
-      <div class="row row1"><div><label>Quote (English) *</label><textarea id="qt" rows="3" placeholder="Enter Gurudev's teaching in English"></textarea></div></div>
-      <div class="row row1"><div><label>Quote (Telugu)</label><textarea id="qte" rows="3" placeholder="తెలుగులో బోధన (ఐచ్ఛికం)"></textarea></div></div>
+      <p style="font-size:12px;color:#888;margin-bottom:12px">Add Gurudev quotes. App picks one per day. Cycles through all uploaded quotes.</p>
+      <div class="row row1"><div><label>Quote (English) *</label><textarea id="qt" rows="3" placeholder="Enter Gurudev teaching in English"></textarea></div></div>
+      <div class="row row1"><div><label>Quote (Telugu)</label><textarea id="qte" rows="3" placeholder="Telugu translation (optional)"></textarea></div></div>
       <div class="row">
         <div><label>Author</label><input id="qa" value="Yogacharya Sri Raparthi Rama Rao"></div>
-        <div><label>Sort Order (optional)</label><input type="number" id="qo" value="0"></div>
+        <div><label>Sort Order</label><input type="number" id="qo" value="0"></div>
       </div>
-      <button class="btn" id="qb" onclick="uploadQuote()">➕ Add Quote</button>
+      <button class="btn" id="qb" onclick="uploadQuote()">Add Quote</button>
       <div class="res" id="qr"></div>
     </div>
     <div class="card">
-      <h3>All Quotes <span id="qcount" style="font-size:11px;font-weight:400;color:#888"></span></h3>
+      <h3 id="qcount">All Quotes</h3>
       <div class="clist" id="qlist"><p style="color:#888;font-size:12px">Loading...</p></div>
     </div>
   </div>
@@ -485,13 +485,12 @@ async function loadMags(){
     const snap=await getDocs(collection(db,'magazines'));
     const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.year-a.year)||(b.month-a.month));
     if(!docs.length){el.innerHTML='<p style="color:#888;font-size:12px">No magazines yet.</p>';return;}
-    el.innerHTML=docs.map(function(d){
-      return '<div class="ci">'
-        +(d.cover_image_url?'<img src="'+d.cover_image_url+'">'+'<div class="cp">YCT</div>':'<div class="cp">YCT</div>')
-        +'<div class="inf"><strong>'+(d.title_english||'')+'</strong><span>'+(d.title_telugu||'')+' · '+(d.pages||0)+'pp · Vol.'+(d.volume||0)+'</span></div>'
-        +'<button class="db" onclick="delMag(\''+d.id+'\',\''+( d.pdf_path||'')+'\',\''+( d.cover_image_path||'')+'\',' +"'"+ (d.title_english||'') +"'"+ ')">🗑 Delete</button>'
-        +'</div>';
-    }).join('');
+    el.innerHTML=docs.map(d=>\`
+      <div class="ci">
+        \${d.cover_image_url?\`<img src="\${d.cover_image_url}">\`:'<div class="cp">YCT</div>'}
+        <div class="inf"><strong>\${d.title_english||''}</strong><span>\${d.title_telugu||''} · \${d.pages||0}pp · Vol.\${d.volume||0}</span></div>
+        <button class="db" onclick="delMag('\${d.id}','\${d.pdf_path||''}','\${d.cover_image_path||''}','\${(d.title_english||'').replace(/'/g,"\\\\'")}')">🗑 Delete</button>
+      </div>\`).join('');
   }catch(e){el.innerHTML=\`<p style="color:#c0392b;font-size:12px">Error: \${e.message}</p>\`;}
 }
 window.delMag = async(id,pp,cp,label)=>{
@@ -649,27 +648,31 @@ window.uploadBook = async()=>{
   document.getElementById('bb').disabled=false;
 };
 
-// ── QUOTES ───────────────────────────────────────────────────────────────
+
+// QUOTES
 async function loadQuotes(){
-  const el=document.getElementById('qlist');
-  const cnt=document.getElementById('qcount');
+  var el=document.getElementById('qlist');
+  var cnt=document.getElementById('qcount');
   el.innerHTML='<p style="color:#888;font-size:12px">Loading...</p>';
   try{
-    const snap=await getDocs(collection(db,'quotes'));
-    const docs=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0);});
-    cnt.textContent='('+docs.length+' quotes)';
-    if(!docs.length){el.innerHTML='<p style="color:#888;font-size:12px">No quotes yet. Add your first one above.</p>';return;}
-    el.innerHTML=docs.map(function(d){
-      return '<div class="ci" style="align-items:flex-start;padding:10px 11px">'
-        +'<div class="cp" style="flex-shrink:0">YCT</div>'
+    var snap=await getDocs(collection(db,'quotes'));
+    var docs=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
+    docs.sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0);});
+    cnt.textContent='All Quotes ('+docs.length+')';
+    if(!docs.length){el.innerHTML='<p style="color:#888;font-size:12px">No quotes yet.</p>';return;}
+    var html='';
+    for(var i=0;i<docs.length;i++){
+      var d=docs[i];
+      html+='<div class="ci" style="align-items:flex-start;padding:10px">'
         +'<div class="inf">'
-        +'<strong style="white-space:normal;font-size:12px;line-height:1.4">'+(d.text||'')+'</strong>'
-        +(d.text_telugu?'<span style="display:block;margin-top:3px;font-size:11px;color:#666">'+d.text_telugu+'</span>':'')
-        +'<span style="margin-top:4px;display:block;font-size:11px;color:#888">— '+(d.author||'')+'</span>'
+        +'<strong style="white-space:normal;font-size:12px;line-height:1.5">'+(d.text||'')+'</strong>'
+        +(d.text_telugu?'<br><span style="font-size:11px;color:#666">'+d.text_telugu+'</span>':'')
+        +'<br><span style="font-size:10px;color:#888">— '+(d.author||'')+'</span>'
         +'</div>'
-        +'<button class="db" style="flex-shrink:0;margin-left:8px" onclick="delQuote(\''+d.id+'\')">Del</button>'
+        +'<button class="db" onclick="delQuote(''+d.id+'')">Del</button>'
         +'</div>';
-    }).join('');
+    }
+    el.innerHTML=html;
   }catch(e){el.innerHTML='<p style="color:#c0392b;font-size:12px">Error: '+e.message+'</p>';}
 }
 window.delQuote = async function(id){
@@ -678,8 +681,8 @@ window.delQuote = async function(id){
   loadQuotes();
 };
 window.uploadQuote = async function(){
-  const t=document.getElementById('qt').value.trim();
-  if(!t){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='Please enter a quote';return;}
+  var t=document.getElementById('qt').value.trim();
+  if(!t){var el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='Please enter a quote';return;}
   document.getElementById('qb').disabled=true;
   try{
     await addDoc(collection(db,'quotes'),{
@@ -689,14 +692,14 @@ window.uploadQuote = async function(){
       sort_order:parseInt(document.getElementById('qo').value)||0,
       created_at:serverTimestamp()
     });
-    const el=document.getElementById('qr');
+    var el=document.getElementById('qr');
     el.style.display='block';el.className='res ok';
-    el.textContent='Quote added successfully!';
+    el.textContent='Quote added!';
     document.getElementById('qt').value='';
     document.getElementById('qte').value='';
     document.getElementById('qo').value='0';
     loadQuotes();
-  }catch(e){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='Error: '+e.message;}
+  }catch(e){var el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='Error: '+e.message;}
   document.getElementById('qb').disabled=false;
 };
 
