@@ -485,7 +485,7 @@ async function loadMags(){
     const snap=await getDocs(collection(db,'magazines'));
     const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.year-a.year)||(b.month-a.month));
     if(!docs.length){el.innerHTML='<p style="color:#888;font-size:12px">No magazines yet.</p>';return;}
-    el.innerHTML=docs.map(d=>\`
+    el.innerHTML=docs.map(function(d){
       <div class="ci">
         \${d.cover_image_url?\`<img src="\${d.cover_image_url}">\`:'<div class="cp">YCT</div>'}
         <div class="inf"><strong>\${d.title_english||''}</strong><span>\${d.title_telugu||''} · \${d.pages||0}pp · Vol.\${d.volume||0}</span></div>
@@ -655,29 +655,30 @@ async function loadQuotes(){
   el.innerHTML='<p style="color:#888;font-size:12px">Loading...</p>';
   try{
     const snap=await getDocs(collection(db,'quotes'));
-    const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-    cnt.textContent=`(${docs.length} quotes)`;
+    const docs=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0);});
+    cnt.textContent='('+docs.length+' quotes)';
     if(!docs.length){el.innerHTML='<p style="color:#888;font-size:12px">No quotes yet. Add your first one above.</p>';return;}
-    el.innerHTML=docs.map(d=>`
-      <div class="ci" style="align-items:flex-start;padding:10px 11px">
-        <div class="cp" style="flex-shrink:0">🪷</div>
-        <div class="inf">
-          <strong style="white-space:normal;font-size:12px;line-height:1.4">${d.text||''}</strong>
-          ${d.text_telugu?`<span style="display:block;margin-top:3px;font-size:11px;color:#666">${d.text_telugu}</span>`:''}
-          <span style="margin-top:4px;display:block;font-size:11px;color:#888">— ${d.author||''}</span>
-        </div>
-        <button class="db" style="flex-shrink:0;margin-left:8px" onclick="delQuote('${d.id}')">🗑</button>
-      </div>`).join('');
-  }catch(e){el.innerHTML=`<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`;}
+    el.innerHTML=docs.map(function(d){
+      return '<div class="ci" style="align-items:flex-start;padding:10px 11px">'
+        +'<div class="cp" style="flex-shrink:0">YCT</div>'
+        +'<div class="inf">'
+        +'<strong style="white-space:normal;font-size:12px;line-height:1.4">'+(d.text||'')+'</strong>'
+        +(d.text_telugu?'<span style="display:block;margin-top:3px;font-size:11px;color:#666">'+d.text_telugu+'</span>':'')
+        +'<span style="margin-top:4px;display:block;font-size:11px;color:#888">— '+(d.author||'')+'</span>'
+        +'</div>'
+        +'<button class="db" style="flex-shrink:0;margin-left:8px" onclick="delQuote(\''+d.id+'\')">Del</button>'
+        +'</div>';
+    }).join('');
+  }catch(e){el.innerHTML='<p style="color:#c0392b;font-size:12px">Error: '+e.message+'</p>';}
 }
-window.delQuote = async(id)=>{
+window.delQuote = async function(id){
   if(!confirm('Delete this quote?')) return;
   await deleteDoc(doc(db,'quotes',id));
   loadQuotes();
 };
-window.uploadQuote = async()=>{
+window.uploadQuote = async function(){
   const t=document.getElementById('qt').value.trim();
-  if(!t){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='❌ Please enter a quote';return;}
+  if(!t){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='Please enter a quote';return;}
   document.getElementById('qb').disabled=true;
   try{
     await addDoc(collection(db,'quotes'),{
@@ -689,12 +690,12 @@ window.uploadQuote = async()=>{
     });
     const el=document.getElementById('qr');
     el.style.display='block';el.className='res ok';
-    el.textContent='✅ Quote added successfully!';
+    el.textContent='Quote added successfully!';
     document.getElementById('qt').value='';
     document.getElementById('qte').value='';
     document.getElementById('qo').value='0';
     loadQuotes();
-  }catch(e){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='❌ '+e.message;}
+  }catch(e){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='Error: '+e.message;}
   document.getElementById('qb').disabled=false;
 };
 
