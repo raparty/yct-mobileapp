@@ -486,11 +486,12 @@ async function loadMags(){
     const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.year-a.year)||(b.month-a.month));
     if(!docs.length){el.innerHTML='<p style="color:#888;font-size:12px">No magazines yet.</p>';return;}
     el.innerHTML=docs.map(function(d){
-      <div class="ci">
-        \${d.cover_image_url?\`<img src="\${d.cover_image_url}">\`:'<div class="cp">YCT</div>'}
-        <div class="inf"><strong>\${d.title_english||''}</strong><span>\${d.title_telugu||''} · \${d.pages||0}pp · Vol.\${d.volume||0}</span></div>
-        <button class="db" onclick="delMag('\${d.id}','\${d.pdf_path||''}','\${d.cover_image_path||''}','\${(d.title_english||'').replace(/'/g,"\\\\'")}')">🗑 Delete</button>
-      </div>\`).join('');
+      return '<div class="ci">'
+        +(d.cover_image_url?'<img src="'+d.cover_image_url+'">'+'<div class="cp">YCT</div>':'<div class="cp">YCT</div>')
+        +'<div class="inf"><strong>'+(d.title_english||'')+'</strong><span>'+(d.title_telugu||'')+' · '+(d.pages||0)+'pp · Vol.'+(d.volume||0)+'</span></div>'
+        +'<button class="db" onclick="delMag(\''+d.id+'\',\''+( d.pdf_path||'')+'\',\''+( d.cover_image_path||'')+'\',' +"'"+ (d.title_english||'') +"'"+ ')">🗑 Delete</button>'
+        +'</div>';
+    }).join('');
   }catch(e){el.innerHTML=\`<p style="color:#c0392b;font-size:12px">Error: \${e.message}</p>\`;}
 }
 window.delMag = async(id,pp,cp,label)=>{
