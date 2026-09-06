@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────
 // YCT — Cover Image Widget
-// Priority order:
+// Priority:
 // 1. Specific cover uploaded for this issue
-// 2. Generic monthly cover from R2 (1.jpeg to 12.jpeg)
-// 3. Colored placeholder (if R2 cover also fails)
+// 2. Generic monthly R2 cover (1.jpeg–12.jpeg)
+// 3. Colored placeholder
+// Fixed: iPad/tablet unbounded dimension issue
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
@@ -13,7 +14,7 @@ class MagazineCover extends StatelessWidget {
   final Color fallbackColor;
   final String month;
   final int year;
-  final int monthNumber; // 1-12, used to pick generic cover
+  final int monthNumber;
   final double borderRadius;
 
   const MagazineCover({
@@ -26,7 +27,6 @@ class MagazineCover extends StatelessWidget {
     this.borderRadius = 8,
   });
 
-  // Generic cover URL based on month (1-12)
   String get _genericCoverUrl {
     final m = ((monthNumber - 1) % 12 + 1).clamp(1, 12);
     return '${R2Config.baseUrl}/covers/$m.jpeg';
@@ -37,18 +37,29 @@ class MagazineCover extends StatelessWidget {
     final hasSpecificCover = imageUrl != null && imageUrl!.isNotEmpty;
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: hasSpecificCover
-          ? _networkImage(imageUrl!, fallbackToGeneric: true)
-          : _networkImage(_genericCoverUrl, fallbackToGeneric: false),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth.isFinite  ? constraints.maxWidth  : 100.0;
+          final h = constraints.maxHeight.isFinite ? constraints.maxHeight : 130.0;
+          return SizedBox(
+            width: w, height: h,
+            child: hasSpecificCover
+                ? _networkImage(imageUrl!, fallbackToGeneric: true,  w: w, h: h)
+                : _networkImage(_genericCoverUrl, fallbackToGeneric: false, w: w, h: h),
+          );
+        },
+      ),
     );
   }
 
-  Widget _networkImage(String url, {required bool fallbackToGeneric}) {
+  Widget _networkImage(String url,
+      {required bool fallbackToGeneric, double w = 100, double h = 130}) {
     return Image.network(
       url,
       fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
+      width: w, height: h,
+      cacheWidth: (w * 2).toInt().clamp(100, 600),
+      filterQuality: FilterQuality.medium,
       loadingBuilder: (_, child, progress) => progress == null
           ? child
           : Container(
@@ -58,12 +69,13 @@ class MagazineCover extends StatelessWidget {
                 child: CircularProgressIndicator(
                   strokeWidth: 2, color: AppColors.primary)))),
       errorBuilder: (_, __, ___) => fallbackToGeneric
-          ? _networkImage(_genericCoverUrl, fallbackToGeneric: false)
-          : _placeholder(),
+          ? _networkImage(_genericCoverUrl, fallbackToGeneric: false, w: w, h: h)
+          : _placeholder(w, h),
     );
   }
 
-  Widget _placeholder() => Container(
+  Widget _placeholder(double w, double h) => Container(
+    width: w, height: h,
     color: fallbackColor,
     padding: const EdgeInsets.all(8),
     child: Column(
@@ -100,23 +112,31 @@ class BookCover extends StatelessWidget {
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: hasImage
-          ? Image.network(
-              imageUrl!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (_, __, ___) => _placeholder(),
-            )
-          : _placeholder(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth.isFinite  ? constraints.maxWidth  : 80.0;
+          final h = constraints.maxHeight.isFinite ? constraints.maxHeight : 100.0;
+          return SizedBox(
+            width: w, height: h,
+            child: hasImage
+                ? Image.network(
+                    imageUrl!,
+                    fit: BoxFit.cover, width: w, height: h,
+                    cacheWidth: (w * 2).toInt().clamp(100, 400),
+                    errorBuilder: (_, __, ___) => _placeholder(w, h))
+                : _placeholder(w, h),
+          );
+        },
+      ),
     );
   }
 
-  Widget _placeholder() => Container(
+  Widget _placeholder(double w, double h) => Container(
+    width: w, height: h,
     color: fallbackColor,
     padding: const EdgeInsets.all(10),
     child: Center(child: Text(title,
       textAlign: TextAlign.center,
       style: const TextStyle(color: Colors.white,
-          fontSize: 12, fontWeight: FontWeight.w600, height: 1.4))));
+        fontSize: 12, fontWeight: FontWeight.w600, height: 1.4))));
 }

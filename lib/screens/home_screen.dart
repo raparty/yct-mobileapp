@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -5,42 +6,73 @@ import '../core/constants.dart';
 import '../core/models.dart';
 import '../core/firestore_service.dart';
 import '../core/connectivity_service.dart';
+import '../core/quotes_service.dart';
+import '../core/remote_config_service.dart';
 import '../widgets/error_view.dart';
+import '../widgets/cover_image.dart';
 import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
-import '../widgets/cover_image.dart';
 import 'gurudev_screen.dart';
 
-// Callback to switch main tab from home screen
 typedef TabSwitcher = void Function(int index);
 
 class HomeScreen extends StatefulWidget {
   final TabSwitcher? onSwitchTab;
   const HomeScreen({super.key, this.onSwitchTab});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  AppSettings _settings = AppSettings.defaults();
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Magazine> _magazines = [];
+  DailyQuote? _quote;
   bool _loading = true;
   String? _error;
 
+  // Sep 30 countdown — controlled via Remote Config show_launch_countdown
+  static final _launchDate = DateTime(2026, 9, 30, 6, 0, 0); // 6AM IST
+  Timer? _countdownTimer;
+  Duration _remaining = Duration.zero;
+
+  bool get _showCountdown =>
+      RemoteConfigService.showLaunchCountdown &&
+      DateTime.now().isBefore(_launchDate);
+
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
+    _updateRemaining();
+    _countdownTimer = Timer.periodic(
+      const Duration(seconds: 1), (_) { if (mounted) _updateRemaining(); });
+  }
+
+  void _updateRemaining() {
+    final now = DateTime.now();
+    setState(() {
+      _remaining = _launchDate.isAfter(now)
+          ? _launchDate.difference(now) : Duration.zero;
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
       final results = await Future.wait([
-        FirestoreService.fetchSettings(),
         FirestoreService.fetchMagazines(),
+        QuotesService.getTodaysQuote(),
       ]);
       if (mounted) setState(() {
-        _settings  = results[0] as AppSettings;
-        _magazines = (results[1] as List<Magazine>).take(4).toList();
+        _magazines = (results[0] as List<Magazine>).take(4).toList();
+        _quote     = results[1] as DailyQuote;
         _loading   = false;
       });
     } catch (e, stack) {
@@ -57,9 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  void _switchTab(int i) {
-    if (widget.onSwitchTab != null) widget.onSwitchTab!(i);
-  }
+  void _switchTab(int i) { if (widget.onSwitchTab != null) widget.onSwitchTab!(i); }
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverToBoxAdapter(child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (_showCountdown) ...[_countdown(), const SizedBox(height: 20)],
               _sectionTitle('Explore'),
               const SizedBox(height: 10),
               _quickGrid(context),
@@ -95,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _header() => SliverAppBar(
-    expandedHeight: 196, pinned: true, backgroundColor: AppColors.primary,
+    expandedHeight: 200, pinned: true, backgroundColor: AppColors.primary,
     flexibleSpace: FlexibleSpaceBar(
       background: Container(
         decoration: const BoxDecoration(gradient: LinearGradient(
@@ -109,30 +140,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white,
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4)]),
                 child: ClipOval(child: Image.asset('assets/images/yct_logo.png', fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Center(child: Text('YCT', style: TextStyle(color: AppColors.primary, fontSize: 9, fontWeight: FontWeight.bold)))))),
+                  errorBuilder: (_, __, ___) => const Center(child: Text('YCT',
+                    style: TextStyle(color: AppColors.primary, fontSize: 9, fontWeight: FontWeight.bold)))))),
               const SizedBox(width: 10),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text(AppStrings.appName, style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                Text(AppStrings.appNameTelugu, style: const TextStyle(color: AppColors.teal, fontSize: 11)),
+              const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(AppStrings.appName,
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                Text(AppStrings.appNameTelugu,
+                  style: TextStyle(color: AppColors.teal, fontSize: 11)),
               ]),
             ]),
             const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.2))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  const Icon(Icons.wb_sunny_outlined, color: AppColors.teal, size: 12),
-                  const SizedBox(width: 4),
-                  const Text("Today's Teaching", style: TextStyle(color: AppColors.teal, fontSize: 10)),
+                const Row(children: [
+                  Icon(Icons.wb_sunny_outlined, color: AppColors.teal, size: 12),
+                  SizedBox(width: 4),
+                  Text("Today's Teaching",
+                    style: TextStyle(color: AppColors.teal, fontSize: 10)),
                 ]),
                 const SizedBox(height: 6),
-                Text('"${_settings.dailyQuote}"',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontStyle: FontStyle.italic, height: 1.5)),
+                Text('"${_quote?.text ?? 'The real yoga is not in the posture of the body, but in the stillness of the mind.'}"',
+                  style: const TextStyle(color: Colors.white, fontSize: 12,
+                    fontStyle: FontStyle.italic, height: 1.5)),
                 const SizedBox(height: 4),
-                Text('— ${AppStrings.guruName}', style: const TextStyle(color: AppColors.teal, fontSize: 10)),
+                Text('— ${_quote?.author ?? AppStrings.guruName}',
+                  style: const TextStyle(color: AppColors.teal, fontSize: 10)),
               ]),
             ),
           ]),
@@ -141,8 +179,67 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
+  Widget _countdown() {
+    final days    = _remaining.inDays;
+    final hours   = _remaining.inHours.remainder(24);
+    final minutes = _remaining.inMinutes.remainder(60);
+    final seconds = _remaining.inSeconds.remainder(60);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryDark, AppColors.primaryMid],
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(
+          color: AppColors.primary.withOpacity(0.3),
+          blurRadius: 12, offset: const Offset(0, 4))]),
+      child: Column(children: [
+        const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.celebration, color: AppColors.saffron, size: 16),
+          SizedBox(width: 6),
+          Text('Official Launch',
+            style: TextStyle(color: AppColors.saffron,
+              fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+          SizedBox(width: 6),
+          Icon(Icons.celebration, color: AppColors.saffron, size: 16),
+        ]),
+        const SizedBox(height: 4),
+        const Text('September 30, 2026',
+          style: TextStyle(color: Colors.white70, fontSize: 11)),
+        const SizedBox(height: 14),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+          _unit(days, 'DAYS'), _div(),
+          _unit(hours, 'HRS'), _div(),
+          _unit(minutes, 'MIN'), _div(),
+          _unit(seconds, 'SEC'),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _unit(int v, String l) => Column(children: [
+    Container(
+      width: 56, height: 56,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withOpacity(0.2))),
+      child: Center(child: Text(v.toString().padLeft(2, '0'),
+        style: const TextStyle(color: Colors.white,
+          fontSize: 24, fontWeight: FontWeight.bold)))),
+    const SizedBox(height: 4),
+    Text(l, style: const TextStyle(color: Colors.white54, fontSize: 9, letterSpacing: 0.5)),
+  ]);
+
+  Widget _div() => const Padding(
+    padding: EdgeInsets.only(bottom: 16),
+    child: Text(':', style: TextStyle(color: Colors.white54,
+      fontSize: 22, fontWeight: FontWeight.bold)));
+
   Widget _sectionTitle(String t) => Text(t.toUpperCase(),
-    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMid, letterSpacing: 0.5));
+    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+      color: AppColors.textMid, letterSpacing: 0.5));
 
   Widget _quickGrid(BuildContext context) => GridView.count(
     crossAxisCount: 2, shrinkWrap: true,
@@ -157,16 +254,17 @@ class _HomeScreenState extends State<HomeScreen> {
         () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GurudevScreen()))),
       _QuickCard('Centers', 'Find us near you',
         Icons.location_on, AppColors.amberLight, AppColors.amber,
-        () => _switchTab(3)), // Centers tab index 3
+        () => _switchTab(3)),
       _QuickCard('Audio', 'Discourses & talks',
         Icons.headphones, const Color(0xFFEEEDFE), AppColors.purple,
-        () => _switchTab(2)), // Audio tab index 2
+        () => _switchTab(2)),
     ],
   );
 
   Widget _emptyMags() => Container(
     padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: AppColors.border)),
     child: const Column(children: [
       Icon(Icons.menu_book_outlined, color: AppColors.textMuted, size: 36),
       SizedBox(height: 8),
@@ -183,23 +281,26 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (ctx, i) {
         if (i == _magazines.length) {
           return GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MagazineArchiveScreen())),
+            onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => MagazineArchiveScreen())),
             child: Container(
               width: 90,
-              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10),
+              decoration: BoxDecoration(color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.primary.withOpacity(0.3))),
               child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(Icons.arrow_forward, color: AppColors.primary),
                 SizedBox(height: 6),
-                Text('View all', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w500)),
+                Text('View all', style: TextStyle(
+                  color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w500)),
               ])));
         }
         final mag = _magazines[i];
         return GestureDetector(
-          onTap: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => IssueDetailScreen(magazine: mag))),
+          onTap: () => Navigator.push(ctx,
+            MaterialPageRoute(builder: (_) => IssueDetailScreen(magazine: mag))),
           child: SizedBox(width: 100, child: Column(children: [
-            SizedBox(
-              height: 120, width: 100,
+            SizedBox(height: 120, width: 100,
               child: MagazineCover(
                 imageUrl:      mag.coverImageUrl,
                 fallbackColor: mag.coverColor,
@@ -208,22 +309,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 monthNumber:   mag.month,
                 borderRadius:  8)),
             const SizedBox(height: 4),
-            Text(mag.titleTelugu, style: const TextStyle(fontSize: 10, color: AppColors.textDark),
+            Text(mag.titleTelugu,
+              style: const TextStyle(fontSize: 10, color: AppColors.textDark),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             if (i == 0) Container(
               margin: const EdgeInsets.only(top: 2),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
-              child: const Text('Latest', style: TextStyle(fontSize: 9, color: AppColors.primaryDark))),
+              decoration: BoxDecoration(color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(10)),
+              child: const Text('Latest',
+                style: TextStyle(fontSize: 9, color: AppColors.primaryDark))),
           ])));
       },
     ));
 
   Widget _aboutCard() => Container(
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: AppColors.border)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Yoga Consciousness Trust', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+      const Text('Yoga Consciousness Trust',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
       const SizedBox(height: 6),
       const Text('Founded by Yogacharya Sri Raparthi Rama Rao, YCT has been spreading the teachings of Anushtana Yoga Vedanta since 1990.',
         style: TextStyle(fontSize: 12, color: AppColors.textLight, height: 1.5)),
@@ -243,7 +349,8 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(children: [
         Icon(icon, size: 14, color: AppColors.primary),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.primaryDark, fontWeight: FontWeight.w500)),
+        Text(label, style: const TextStyle(
+          fontSize: 11, color: AppColors.primaryDark, fontWeight: FontWeight.w500)),
       ])));
 }
 
@@ -256,13 +363,15 @@ class _QuickCard extends StatelessWidget {
     onTap: onTap,
     child: Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(width: 32, height: 32,
           decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, color: fg, size: 18)),
         const Spacer(),
-        Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+        Text(title, style: const TextStyle(
+          fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark)),
         Text(sub, style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
       ])));
 }

@@ -1,8 +1,10 @@
 // ─────────────────────────────────────────
 // YCT — PDF Viewer (R2)
-// • Tries Google Docs Viewer first
-// • Auto-falls back to direct browser open on error
-// • Reload and browser buttons always available
+// • Google Docs Viewer with JS injection
+//   to hide share, open and toolbar buttons
+// • MutationObserver catches dynamic buttons
+// • Auto-fallback to browser on error
+// • Only Reload button in our AppBar
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -28,12 +30,38 @@ class PdfViewerScreen extends StatefulWidget {
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final WebViewController _ctrl;
   bool _loading = true;
-  bool _failed = false;
+  bool _failed  = false;
 
   String get _viewerUrl =>
     'https://docs.google.com/viewer'
     '?url=${Uri.encodeComponent(widget.pdfUrl)}'
     '&embedded=true';
+
+  // Hides Google's share, open-in-new-window and toolbar
+  static const _hideToolbarJs = r'''
+    (function() {
+      var style = document.createElement('style');
+      style.innerHTML =
+        '#drive-viewer-toolstrip,' +
+        '.ndfHFb-c4YZDc-Wrql6b,' +
+        '.ndfHFb-c4YZDc-GSQQnc-LgbsSe,' +
+        '.ndfHFb-c4YZDc-q77wGc,' +
+        '[data-tooltip="Open in new window"],' +
+        '[aria-label="Share"],' +
+        '[data-tooltip="Share"],' +
+        '.docs-ml-header-user-container,' +
+        '.docs-header-toolbar-buttons,' +
+        '#doc-menu-bar' +
+        '{ display: none !important; }';
+      document.head.appendChild(style);
+      var observer = new MutationObserver(function() {
+        var els = document.querySelectorAll(
+          '[aria-label="Share"],[data-tooltip="Share"],[data-tooltip="Open in new window"]');
+        els.forEach(function(el){ el.style.display = 'none'; });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    })();
+  ''';
 
   @override
   void initState() {
@@ -49,11 +77,13 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (_) => setState(() { _loading = true; _failed = false; }),
-        onPageFinished: (_) => setState(() => _loading = false),
+        onPageFinished: (_) async {
+          await _ctrl.runJavaScript(_hideToolbarJs);
+          if (mounted) setState(() => _loading = false);
+        },
         onWebResourceError: (e) {
           if (e.isForMainFrame == true) {
             setState(() { _loading = false; _failed = true; });
-            // Auto-open in browser on connection failure
             _openBrowser();
           }
         },
@@ -83,10 +113,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
             icon: const Icon(Icons.refresh, color: Colors.white),
             tooltip: 'Reload',
             onPressed: _reload),
-          IconButton(
-            icon: const Icon(Icons.open_in_browser, color: Colors.white70),
-            tooltip: 'Open in browser',
-            onPressed: _openBrowser),
         ],
       ),
       body: Stack(children: [

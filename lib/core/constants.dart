@@ -32,13 +32,10 @@ class AppStrings {
   static const guruName       = 'Yogacharya Sri Raparthi Rama Rao';
   static const contactEmail   = 'info@yogaconsciousness.org';
   static const website        = 'https://www.yogaconsciousness.org';
-  static const whatsapp       = 'https://wa.me/918966268680';
+  static const whatsapp       = 'https://wa.me/919492448840'; // updated Sep 2026
 }
 
 class R2Config {
-  // Cloudflare R2 public URL — all content served from here
   static const baseUrl = 'https://pub-360b7b3324fb4f22bb35e656f476062a.r2.dev';
-
-  // Build full URL from a stored path
   static String url(String path) => '$baseUrl/$path';
 }

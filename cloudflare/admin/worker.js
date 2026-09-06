@@ -104,6 +104,7 @@ const HTML = `<!DOCTYPE html>
     <div class="tab" onclick="st('audio')">🎵 Audio</div>
     <div class="tab" onclick="st('book')">📚 Book</div>
     <div class="tab" onclick="st('toggles')">🔧 Feature Toggles</div>
+    <div class="tab" onclick="st('quotes')">💬 Quotes</div>
     <div class="tab" onclick="st('settings')">⚙️ Settings</div>
   </div>
 
@@ -280,6 +281,26 @@ const HTML = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- QUOTES -->
+  <div class="panel" id="panel-quotes">
+    <div class="card">
+      <h3>Add Daily Quote</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:12px">Add Gurudev's quotes. The app picks one per day automatically. If fewer than 365 are uploaded, quotes cycle through what's available.</p>
+      <div class="row row1"><div><label>Quote (English) *</label><textarea id="qt" rows="3" placeholder="Enter Gurudev's teaching in English"></textarea></div></div>
+      <div class="row row1"><div><label>Quote (Telugu)</label><textarea id="qte" rows="3" placeholder="తెలుగులో బోధన (ఐచ్ఛికం)"></textarea></div></div>
+      <div class="row">
+        <div><label>Author</label><input id="qa" value="Yogacharya Sri Raparthi Rama Rao"></div>
+        <div><label>Sort Order (optional)</label><input type="number" id="qo" value="0"></div>
+      </div>
+      <button class="btn" id="qb" onclick="uploadQuote()">➕ Add Quote</button>
+      <div class="res" id="qr"></div>
+    </div>
+    <div class="card">
+      <h3>All Quotes <span id="qcount" style="font-size:11px;font-weight:400;color:#888"></span></h3>
+      <div class="clist" id="qlist"><p style="color:#888;font-size:12px">Loading...</p></div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="panel" id="panel-settings">
     <div class="card">
@@ -335,7 +356,7 @@ window.doLogin = async () => {
 window.doLogout = () => signOut(auth);
 
 window.st = n => {
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['magazine','audio','book','toggles','settings'][i]===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['magazine','audio','book','toggles','quotes','settings'][i]===n));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+n).classList.add('active');
 };
@@ -455,7 +476,7 @@ window.saveDailyQuote = () => {
 };
 
 // ── LOAD LISTS ───────────────────────────────────────────────────────────
-function loadAll(){ loadMags(); loadAudio2(); loadBooks(); }
+function loadAll(){ loadMags(); loadAudio2(); loadBooks(); loadQuotes(); }
 
 async function loadMags(){
   const el=document.getElementById('mlist');
@@ -625,6 +646,56 @@ window.uploadBook = async()=>{
     loadBooks();
   }catch(e){sr2('b',false,e.message);}
   document.getElementById('bb').disabled=false;
+};
+
+// ── QUOTES ───────────────────────────────────────────────────────────────
+async function loadQuotes(){
+  const el=document.getElementById('qlist');
+  const cnt=document.getElementById('qcount');
+  el.innerHTML='<p style="color:#888;font-size:12px">Loading...</p>';
+  try{
+    const snap=await getDocs(collection(db,'quotes'));
+    const docs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    cnt.textContent=`(${docs.length} quotes)`;
+    if(!docs.length){el.innerHTML='<p style="color:#888;font-size:12px">No quotes yet. Add your first one above.</p>';return;}
+    el.innerHTML=docs.map(d=>`
+      <div class="ci" style="align-items:flex-start;padding:10px 11px">
+        <div class="cp" style="flex-shrink:0">🪷</div>
+        <div class="inf">
+          <strong style="white-space:normal;font-size:12px;line-height:1.4">${d.text||''}</strong>
+          ${d.text_telugu?`<span style="display:block;margin-top:3px;font-size:11px;color:#666">${d.text_telugu}</span>`:''}
+          <span style="margin-top:4px;display:block;font-size:11px;color:#888">— ${d.author||''}</span>
+        </div>
+        <button class="db" style="flex-shrink:0;margin-left:8px" onclick="delQuote('${d.id}')">🗑</button>
+      </div>`).join('');
+  }catch(e){el.innerHTML=`<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`;}
+}
+window.delQuote = async(id)=>{
+  if(!confirm('Delete this quote?')) return;
+  await deleteDoc(doc(db,'quotes',id));
+  loadQuotes();
+};
+window.uploadQuote = async()=>{
+  const t=document.getElementById('qt').value.trim();
+  if(!t){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='❌ Please enter a quote';return;}
+  document.getElementById('qb').disabled=true;
+  try{
+    await addDoc(collection(db,'quotes'),{
+      text:t,
+      text_telugu:document.getElementById('qte').value.trim(),
+      author:document.getElementById('qa').value.trim()||'Yogacharya Sri Raparthi Rama Rao',
+      sort_order:parseInt(document.getElementById('qo').value)||0,
+      created_at:serverTimestamp()
+    });
+    const el=document.getElementById('qr');
+    el.style.display='block';el.className='res ok';
+    el.textContent='✅ Quote added successfully!';
+    document.getElementById('qt').value='';
+    document.getElementById('qte').value='';
+    document.getElementById('qo').value='0';
+    loadQuotes();
+  }catch(e){const el=document.getElementById('qr');el.style.display='block';el.className='res er';el.textContent='❌ '+e.message;}
+  document.getElementById('qb').disabled=false;
 };
 
 // ── SETTINGS ─────────────────────────────────────────────────────────────

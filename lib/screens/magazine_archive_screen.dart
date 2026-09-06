@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────
-// YCT — Magazine Archive (R1)
+// YCT — Magazine Archive
+// • Real R2 covers via MagazineCover widget
+// • Year filter + search
 // • Error state + retry
-// • Empty state
-// • Loading indicator
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -11,6 +11,7 @@ import '../core/models.dart';
 import '../core/firestore_service.dart';
 import '../core/connectivity_service.dart';
 import '../widgets/error_view.dart';
+import '../widgets/cover_image.dart';
 import 'issue_detail_screen.dart';
 
 class MagazineArchiveScreen extends StatefulWidget {
@@ -54,7 +55,7 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
   }
 
   List<Magazine> get _filtered => _all.where((m) {
-    final yearOk = m.year == _selectedYear;
+    final yearOk   = m.year == _selectedYear;
     final searchOk = _search.isEmpty ||
         m.titleEnglish.toLowerCase().contains(_search.toLowerCase()) ||
         m.titleTelugu.contains(_search);
@@ -66,16 +67,12 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('యోగ చైతన్య ప్రభ',
-              style: TextStyle(fontSize: 16, color: Colors.white)),
-            Text('Monthly magazine archive',
-              style: TextStyle(
-                  fontSize: 11, color: Colors.white70)),
-          ],
-        ),
+        title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('యోగ చైతన్య ప్రభ',
+            style: TextStyle(fontSize: 16, color: Colors.white)),
+          Text('Monthly magazine archive',
+            style: TextStyle(fontSize: 11, color: Colors.white70)),
+        ]),
         backgroundColor: AppColors.primary,
         actions: [
           IconButton(
@@ -86,23 +83,18 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
           preferredSize: const Size.fromHeight(88),
           child: Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16,0,16,8),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: TextField(
                 onChanged: (v) => setState(() => _search = v),
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Search...',
-                  hintStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.6), fontSize: 13),
-                  prefixIcon: Icon(Icons.search,
-                      color: Colors.white.withOpacity(0.6), size: 20),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.15),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                  prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.6), size: 20),
+                  filled: true, fillColor: Colors.white.withOpacity(0.15),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none),
+                    borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                 ),
               ),
             ),
@@ -119,17 +111,14 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
                     onTap: () => setState(() => _selectedYear = year),
                     child: Container(
                       margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color: sel ? Colors.white
-                            : Colors.white.withOpacity(0.15),
+                        color: sel ? Colors.white : Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(20)),
-                      child: Text('$year',
-                        style: TextStyle(
-                          color: sel ? AppColors.primary : Colors.white,
-                          fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 13))));
+                      child: Text('$year', style: TextStyle(
+                        color: sel ? AppColors.primary : Colors.white,
+                        fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 13))));
                 }),
             ),
             const SizedBox(height: 8),
@@ -147,10 +136,9 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
                       subtitle: 'Upload magazines via the admin panel\nand they will appear here.',
                       action: TextButton.icon(
                         onPressed: _load,
-                        icon: const Icon(Icons.refresh,
-                            color: AppColors.primary, size: 16),
+                        icon: const Icon(Icons.refresh, color: AppColors.primary, size: 16),
                         label: const Text('Refresh',
-                            style: TextStyle(color: AppColors.primary))))
+                          style: TextStyle(color: AppColors.primary))))
                   : _filtered.isEmpty
                       ? EmptyView(
                           icon: Icons.search_off,
@@ -159,21 +147,19 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
                       : Padding(
                           padding: const EdgeInsets.all(16),
                           child: GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
-                              childAspectRatio: 0.72,
+                              childAspectRatio: 0.68,
                               crossAxisSpacing: 10,
                               mainAxisSpacing: 10),
                             itemCount: _filtered.length,
                             itemBuilder: (ctx, i) {
                               final mag = _filtered[i];
-                              final ci  = i % AppColors.coverColors.length;
                               return GestureDetector(
                                 onTap: () => Navigator.push(ctx,
                                   MaterialPageRoute(builder: (_) =>
                                     IssueDetailScreen(magazine: mag))),
-                                child: _MagCard(magazine: mag, colorIndex: ci));
+                                child: _MagCard(magazine: mag));
                             })),
     );
   }
@@ -181,8 +167,7 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
 
 class _MagCard extends StatelessWidget {
   final Magazine magazine;
-  final int colorIndex;
-  const _MagCard({required this.magazine, required this.colorIndex});
+  const _MagCard({required this.magazine});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -191,38 +176,30 @@ class _MagCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       border: Border.all(color: AppColors.border)),
     child: Column(children: [
-      Expanded(child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.coverColors[colorIndex],
-          borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(10))),
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('YCT • యోగ చైతన్య ప్రభ',
-              style: TextStyle(
-                  color: Colors.white.withOpacity(0.7), fontSize: 7)),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(magazine.displayMonth,
-                style: const TextStyle(color: Colors.white,
-                    fontSize: 18, fontWeight: FontWeight.bold)),
-              Text('${magazine.year}',
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.8), fontSize: 11)),
-            ]),
-          ]))),
-      Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(magazine.titleTelugu,
-            style: const TextStyle(fontSize: 11,
-                fontWeight: FontWeight.w500, color: AppColors.textDark)),
-          const SizedBox(height: 3),
-          Text('${magazine.pages} pages',
-            style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
-        ])),
+      Expanded(
+        flex: 5,
+        child: MagazineCover(
+          imageUrl:      magazine.coverImageUrl,
+          fallbackColor: magazine.coverColor,
+          month:         magazine.displayMonth,
+          year:          magazine.year,
+          monthNumber:   magazine.month,
+          borderRadius:  10)),
+      Expanded(
+        flex: 2,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(magazine.titleTelugu,
+                style: const TextStyle(fontSize: 11,
+                  fontWeight: FontWeight.w500, color: AppColors.textDark),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text('${magazine.pages} pages',
+                style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
+            ]))),
     ]));
 }

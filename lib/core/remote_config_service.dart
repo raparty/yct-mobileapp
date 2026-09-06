@@ -5,11 +5,12 @@ class RemoteConfigService {
   static final _rc = FirebaseRemoteConfig.instance;
 
   static const _defaults = {
-    'publications_enabled':  false, // Books tab — off by default
+    'publications_enabled':  false,
     'force_update_version':  '',
     'force_update_message':  '',
     'maintenance_mode':      false,
     'daily_quote_override':  '',
+    'show_launch_countdown': false, // flip to true on Sep 25 to show countdown
   };
 
   static Future<void> init() async {
@@ -25,11 +26,12 @@ class RemoteConfigService {
     }
   }
 
-  static bool   get publicationsEnabled => _rc.getBool('publications_enabled');
-  static String get forceUpdateVersion  => _rc.getString('force_update_version');
-  static String get forceUpdateMessage  => _rc.getString('force_update_message');
-  static bool   get maintenanceMode     => _rc.getBool('maintenance_mode');
-  static String get dailyQuoteOverride  => _rc.getString('daily_quote_override');
+  static bool   get publicationsEnabled  => _rc.getBool('publications_enabled');
+  static String get forceUpdateVersion   => _rc.getString('force_update_version');
+  static String get forceUpdateMessage   => _rc.getString('force_update_message');
+  static bool   get maintenanceMode      => _rc.getBool('maintenance_mode');
+  static String get dailyQuoteOverride   => _rc.getString('daily_quote_override');
+  static bool   get showLaunchCountdown  => _rc.getBool('show_launch_countdown');
 
   static Future<void> refresh() async {
     try { await _rc.fetchAndActivate(); } catch (_) {}
