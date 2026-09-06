@@ -669,7 +669,7 @@ async function loadQuotes(){
         +(d.text_telugu?'<br><span style="font-size:11px;color:#666">'+d.text_telugu+'</span>':'')
         +'<br><span style="font-size:10px;color:#888">— '+(d.author||'')+'</span>'
         +'</div>'
-        +'<button class="db" onclick="delQuote(''+d.id+'')">Del</button>'
+        +'<button class="db" onclick="delQuote(\x27'+d.id+'\x27)">Del</button>'
         +'</div>';
     }
     el.innerHTML=html;
