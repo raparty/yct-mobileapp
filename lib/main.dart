@@ -48,10 +48,14 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ));
 
+    // Wait for Remote Config before showing app
+    // This ensures maintenance_mode is respected immediately on launch
+    await RemoteConfigService.init();
+
     runApp(const YCTApp());
 
+    // Auth loads in background — no need to block for it
     unawaited(AuthService.init());
-    unawaited(RemoteConfigService.init());
 
   }, (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
@@ -92,20 +96,27 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _idx = 0;
+  bool _maintenance = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Read immediately — Remote Config is already loaded before runApp()
+    _maintenance = RemoteConfigService.maintenanceMode;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await UpdateService.checkAndShowIfRequired(context);
+      if (!_maintenance) {
+        await UpdateService.checkAndShowIfRequired(context);
+      }
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      RemoteConfigService.refresh();
+      RemoteConfigService.refresh().then((_) {
+        if (mounted) setState(() => _maintenance = RemoteConfigService.maintenanceMode);
+      });
     }
   }
 
@@ -119,6 +130,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    if (_maintenance) return const _MaintenanceScreen();
+
     final screens = [
       HomeScreen(onSwitchTab: _switchTab),
       const LibraryScreen(),
@@ -157,6 +170,79 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             selectedIcon: Icon(Icons.more_horiz, color: AppColors.primary),
             label: 'More'),
         ],
+      ),
+    );
+  }
+}
+
+class _MaintenanceScreen extends StatelessWidget {
+  const _MaintenanceScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.primary,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100, height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20)]),
+                  child: ClipOval(child: Image.asset(
+                    'assets/images/yct_logo.png', fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Text('YCT', style: TextStyle(
+                        color: AppColors.primary, fontSize: 20,
+                        fontWeight: FontWeight.bold)))))),
+                const SizedBox(height: 32),
+                const Text('యోగ చైతన్య సంస్థ',
+                  style: TextStyle(color: AppColors.teal,
+                    fontSize: 14, letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                const Text('Yoga Consciousness Trust',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white,
+                    fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.2))),
+                  child: Column(children: [
+                    const Icon(Icons.celebration,
+                      color: AppColors.saffron, size: 36),
+                    const SizedBox(height: 12),
+                    const Text('Launching September 30, 2026',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.saffron,
+                        fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Text('The official YCT app is coming soon.\nStay tuned for our launch!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 13, height: 1.6)),
+                  ])),
+                const SizedBox(height: 32),
+                Text('తపస్వభ్యో ఉధికో యోగీ',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 12, fontStyle: FontStyle.italic)),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
