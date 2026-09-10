@@ -102,6 +102,8 @@
     <div class="tab" onclick="st('book')">📚 Book</div>
     <div class="tab" onclick="st('toggles')">🔧 Feature Toggles</div>
     <div class="tab" onclick="st('settings')">⚙️ Settings</div>
+    <div class="tab" onclick="st('programs')">📅 Programs</div>
+    <div class="tab" onclick="st('feedback')">💬 Feedback</div>
   </div>
 
   <!-- MAGAZINE -->
@@ -291,11 +293,68 @@
       <div class="res" id="sr"></div>
     </div>
   </div>
+
+  <!-- PROGRAMS -->
+  <div class="panel" id="panel-programs">
+    <div class="card">
+      <h3 id="prog-form-title">Add New Program</h3>
+      <input type="hidden" id="prog-edit-id">
+      <div class="row">
+        <div><label>Title (English) *</label><input id="prog-title"></div>
+        <div><label>Title (Telugu)</label><input id="prog-title-te"></div>
+      </div>
+      <div class="row row3">
+        <div><label>Type *</label>
+          <select id="prog-type">
+            <option value="shibir">Yoga Shibir</option>
+            <option value="class">Class / Course</option>
+            <option value="special">Special Program</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+        <div><label>Start Date *</label><input type="date" id="prog-start"></div>
+        <div><label>End Date (optional)</label><input type="date" id="prog-end"></div>
+      </div>
+      <div class="row">
+        <div><label>Center Name</label><input id="prog-center" placeholder="e.g. Vijayawada"></div>
+        <div><label>Location / Venue</label><input id="prog-location" placeholder="e.g. YCT Center, MG Road"></div>
+      </div>
+      <div class="row row1"><div><label>Description</label><textarea id="prog-desc" rows="3" placeholder="Details about the program, schedule, who can attend..."></textarea></div></div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn" id="prog-save-btn" onclick="saveProgram()" style="margin-top:0">💾 Save Program</button>
+        <button id="prog-cancel-btn" onclick="cancelEditProgram()" style="display:none;background:none;border:1px solid #d3d1c7;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:13px">Cancel</button>
+      </div>
+      <div class="res" id="prog-res"></div>
+    </div>
+    <div class="card">
+      <h3>All Programs <span style="font-size:11px;font-weight:400;color:#888">(newest first)</span></h3>
+      <div class="clist" id="prog-list"><p style="color:#888;font-size:12px">Loading...</p></div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div class="panel" id="panel-feedback">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 style="margin-bottom:0">Feedback from Devotees</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="fb-filter" onchange="loadFeedback()" style="font-size:12px;padding:5px 9px;border-radius:6px">
+            <option value="all">All</option>
+            <option value="unread">Unread only</option>
+          </select>
+          <button onclick="loadFeedback()" style="background:#e8f5e8;color:#2d5a2d;border:1px solid #b8d8b8;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="fb-count" style="font-size:11px;color:#888;margin-bottom:10px"></div>
+      <div id="fb-list"><p style="color:#888;font-size:12px">Loading...</p></div>
+    </div>
+  </div>
+
 </div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp }
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, Timestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -332,7 +391,7 @@ window.doLogin = async () => {
 window.doLogout = () => signOut(auth);
 
 window.st = n => {
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['magazine','audio','book','toggles','settings'][i]===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['magazine','audio','book','toggles','settings','programs','feedback'][i]===n));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+n).classList.add('active');
 };
@@ -452,7 +511,7 @@ window.saveDailyQuote = () => {
 };
 
 // ── LOAD LISTS ───────────────────────────────────────────────────────────
-function loadAll(){ loadMags(); loadAudio2(); loadBooks(); }
+function loadAll(){ loadMags(); loadAudio2(); loadBooks(); loadPrograms(); loadFeedback(); }
 
 async function loadMags(){
   const el=document.getElementById('mlist');
@@ -648,6 +707,207 @@ window.saveSettings = async()=>{
     document.getElementById('sr').textContent='❌ '+e.message;
   }
 };
+
+// ── PROGRAMS CRUD ─────────────────────────────────────────────────────────
+const PROG_TYPES = { shibir:'Yoga Shibir', class:'Class', special:'Special Program', online:'Online' };
+const PROG_ICONS = { shibir:'🧘', class:'📚', special:'⭐', online:'💻' };
+
+async function loadPrograms() {
+  const el = document.getElementById('prog-list');
+  el.innerHTML = '<p style="color:#888;font-size:12px">Loading...</p>';
+  try {
+    const snap = await getDocs(collection(db, 'programs'));
+    let docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    docs.sort((a, b) => {
+      const ta = a.start_date ? a.start_date.toMillis() : 0;
+      const tb = b.start_date ? b.start_date.toMillis() : 0;
+      return tb - ta;
+    });
+    if (!docs.length) { el.innerHTML = '<p style="color:#888;font-size:12px">No programs yet. Add one above.</p>'; return; }
+    el.innerHTML = docs.map(d => {
+      const sd = d.start_date ? d.start_date.toDate() : null;
+      const ed = d.end_date   ? d.end_date.toDate()   : null;
+      const dateStr = sd ? sd.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : 'No date';
+      const dateEnd = ed ? ' – ' + ed.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+      const pub = d.is_published !== false;
+      return `<div class="ci" id="prog-row-${d.id}">
+        <div class="cp" style="font-size:18px">${PROG_ICONS[d.type] || '📅'}</div>
+        <div class="inf">
+          <strong>${d.title || '(no title)'}</strong>
+          <span>${PROG_TYPES[d.type] || d.type} · ${dateStr}${dateEnd} · ${d.center_name || d.location || ''}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;background:${pub ? '#e8f5e8' : '#f5f3ee'};color:${pub ? '#2d5a2d' : '#888'}">${pub ? 'Live' : 'Hidden'}</span>
+          <button style="background:none;border:1px solid #d3d1c7;color:#5f5e5a;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px" onclick="editProgram('${d.id}')">✏️ Edit</button>
+          <button class="db" onclick="toggleProgram('${d.id}', ${pub})">${pub ? 'Hide' : 'Show'}</button>
+          <button class="db" onclick="delProgram('${d.id}', '${(d.title||'').replace(/'/g, "\\'")}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`; }
+}
+
+window.saveProgram = async () => {
+  const title = document.getElementById('prog-title').value.trim();
+  const start = document.getElementById('prog-start').value;
+  if (!title) { showRes('prog-res', false, 'Title is required'); return; }
+  if (!start) { showRes('prog-res', false, 'Start date is required'); return; }
+
+  const editId = document.getElementById('prog-edit-id').value;
+  const btn = document.getElementById('prog-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  const endVal = document.getElementById('prog-end').value;
+  const data = {
+    title:        title,
+    title_telugu: document.getElementById('prog-title-te').value.trim(),
+    type:         document.getElementById('prog-type').value,
+    start_date:   Timestamp.fromDate(new Date(start + 'T00:00:00')),
+    end_date:     endVal ? Timestamp.fromDate(new Date(endVal + 'T23:59:59')) : null,
+    center_name:  document.getElementById('prog-center').value.trim(),
+    location:     document.getElementById('prog-location').value.trim(),
+    description:  document.getElementById('prog-desc').value.trim(),
+    is_published: true,
+  };
+
+  try {
+    if (editId) {
+      await setDoc(doc(db, 'programs', editId), { ...data, updated_at: serverTimestamp() }, { merge: true });
+      showRes('prog-res', true, 'Program updated!');
+    } else {
+      data.created_at = serverTimestamp();
+      await addDoc(collection(db, 'programs'), data);
+      showRes('prog-res', true, 'Program added and live in app!');
+    }
+    resetProgramForm();
+    loadPrograms();
+  } catch(e) { showRes('prog-res', false, e.message); }
+  btn.disabled = false; btn.textContent = '💾 Save Program';
+};
+
+window.editProgram = async (id) => {
+  try {
+    const snap = await getDoc(doc(db, 'programs', id));
+    if (!snap.exists()) return;
+    const d = snap.data();
+    document.getElementById('prog-edit-id').value   = id;
+    document.getElementById('prog-title').value     = d.title || '';
+    document.getElementById('prog-title-te').value  = d.title_telugu || '';
+    document.getElementById('prog-type').value      = d.type || 'special';
+    document.getElementById('prog-center').value    = d.center_name || '';
+    document.getElementById('prog-location').value  = d.location || '';
+    document.getElementById('prog-desc').value      = d.description || '';
+    if (d.start_date) {
+      const sd = d.start_date.toDate();
+      document.getElementById('prog-start').value = sd.toISOString().split('T')[0];
+    }
+    if (d.end_date) {
+      const ed = d.end_date.toDate();
+      document.getElementById('prog-end').value = ed.toISOString().split('T')[0];
+    } else {
+      document.getElementById('prog-end').value = '';
+    }
+    document.getElementById('prog-form-title').textContent = 'Edit Program';
+    document.getElementById('prog-save-btn').textContent = '💾 Update Program';
+    document.getElementById('prog-cancel-btn').style.display = 'inline-block';
+    document.getElementById('panel-programs').scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch(e) { alert('Error loading program: ' + e.message); }
+};
+
+window.cancelEditProgram = () => resetProgramForm();
+
+function resetProgramForm() {
+  document.getElementById('prog-edit-id').value   = '';
+  document.getElementById('prog-title').value     = '';
+  document.getElementById('prog-title-te').value  = '';
+  document.getElementById('prog-type').value      = 'shibir';
+  document.getElementById('prog-start').value     = '';
+  document.getElementById('prog-end').value       = '';
+  document.getElementById('prog-center').value    = '';
+  document.getElementById('prog-location').value  = '';
+  document.getElementById('prog-desc').value      = '';
+  document.getElementById('prog-form-title').textContent  = 'Add New Program';
+  document.getElementById('prog-save-btn').textContent    = '💾 Save Program';
+  document.getElementById('prog-cancel-btn').style.display = 'none';
+  document.getElementById('prog-res').style.display = 'none';
+}
+
+window.toggleProgram = async (id, currentlyPublished) => {
+  try {
+    await setDoc(doc(db, 'programs', id), { is_published: !currentlyPublished }, { merge: true });
+    loadPrograms();
+  } catch(e) { alert('Error: ' + e.message); }
+};
+
+window.delProgram = async (id, label) => {
+  if (!confirm('Delete "' + label + '"?\nThis removes it from the app immediately.')) return;
+  await deleteDoc(doc(db, 'programs', id));
+  loadPrograms();
+};
+
+// ── FEEDBACK ──────────────────────────────────────────────────────────────
+async function loadFeedback() {
+  const el = document.getElementById('fb-list');
+  const countEl = document.getElementById('fb-count');
+  const filter = document.getElementById('fb-filter').value;
+  el.innerHTML = '<p style="color:#888;font-size:12px">Loading...</p>';
+  try {
+    const snap = await getDocs(collection(db, 'feedback'));
+    let docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    docs.sort((a, b) => {
+      const ta = a.submitted_at ? a.submitted_at.toMillis() : 0;
+      const tb = b.submitted_at ? b.submitted_at.toMillis() : 0;
+      return tb - ta;
+    });
+    const unreadCount = docs.filter(d => !d.read).length;
+    countEl.textContent = docs.length + ' total · ' + unreadCount + ' unread';
+    if (filter === 'unread') docs = docs.filter(d => !d.read);
+    if (!docs.length) { el.innerHTML = '<p style="color:#888;font-size:12px">No feedback yet.</p>'; return; }
+    el.innerHTML = docs.map(d => {
+      const ts = d.submitted_at ? d.submitted_at.toDate().toLocaleString('en-IN') : '';
+      const isRead = d.read === true;
+      return `<div style="border:1px solid ${isRead ? '#d3d1c7' : '#2d5a2d'};border-radius:10px;padding:13px 14px;margin-bottom:8px;background:${isRead ? 'white' : '#f0f8f0'}">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+              ${!isRead ? '<span style="font-size:9px;background:#2d5a2d;color:white;padding:2px 7px;border-radius:8px;font-weight:600">NEW</span>' : ''}
+              <span style="font-size:11px;background:#f0f4f0;border-radius:6px;padding:2px 8px;color:#5f5e5a">${d.category || 'General'}</span>
+              <span style="font-size:12px;font-weight:600;color:#2c2c2a">${d.name || 'Anonymous'}</span>
+              ${d.phone ? '<span style="font-size:11px;color:#888">📞 ' + d.phone + '</span>' : ''}
+              <span style="font-size:10px;color:#b4b2a9;margin-left:auto">${ts}</span>
+            </div>
+            <div style="font-size:13px;color:#2c2c2a;line-height:1.5;white-space:pre-wrap">${(d.message || '').replace(/</g,'&lt;')}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+            ${!isRead ? '<button onclick="markRead(\'' + d.id + '\')" style="background:#2d5a2d;color:white;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap">✓ Mark read</button>' : ''}
+            <button onclick="delFeedback(\'' + d.id + '\')" class="db">🗑</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`; }
+}
+
+window.markRead = async (id) => {
+  await setDoc(doc(db, 'feedback', id), { read: true }, { merge: true });
+  loadFeedback();
+};
+
+window.delFeedback = async (id) => {
+  if (!confirm('Delete this feedback?')) return;
+  await deleteDoc(doc(db, 'feedback', id));
+  loadFeedback();
+};
+
+// ── SHARED HELPER ─────────────────────────────────────────────────────────
+function showRes(id, ok, msg) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  el.className = 'res ' + (ok ? 'ok' : 'er');
+  el.textContent = (ok ? '✅ ' : '❌ ') + msg;
+}
+
 </script>
 </body>
 </html>

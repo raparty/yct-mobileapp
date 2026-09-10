@@ -13,6 +13,7 @@ import 'core/update_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/audio_screen.dart';
+import 'screens/programs_screen.dart';
 import 'screens/centers_screen.dart';
 import 'screens/more_screen.dart';
 
@@ -48,13 +49,10 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ));
 
-    // Wait for Remote Config before showing app
-    // This ensures maintenance_mode is respected immediately on launch
     await RemoteConfigService.init();
 
     runApp(const YCTApp());
 
-    // Auth loads in background — no need to block for it
     unawaited(AuthService.init());
 
   }, (error, stack) {
@@ -102,7 +100,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Read immediately — Remote Config is already loaded before runApp()
     _maintenance = RemoteConfigService.maintenanceMode;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!_maintenance) {
@@ -132,10 +129,13 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     if (_maintenance) return const _MaintenanceScreen();
 
+    // Tab indices:
+    // 0 = Home, 1 = Library, 2 = Audio, 3 = Programs, 4 = Centers, 5 = More
     final screens = [
       HomeScreen(onSwitchTab: _switchTab),
       const LibraryScreen(),
       const AudioScreen(),
+      const ProgramsScreen(),
       const CentersScreen(),
       const MoreScreen(),
     ];
@@ -161,6 +161,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             icon: Icon(Icons.headphones_outlined),
             selectedIcon: Icon(Icons.headphones, color: AppColors.primary),
             label: 'Audio'),
+          NavigationDestination(
+            icon: Icon(Icons.event_outlined),
+            selectedIcon: Icon(Icons.event, color: AppColors.primary),
+            label: 'Programs'),
           NavigationDestination(
             icon: Icon(Icons.location_on_outlined),
             selectedIcon: Icon(Icons.location_on, color: AppColors.primary),

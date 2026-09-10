@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────
-// YCT — Firestore Service (R1: timeouts + error handling)
+// YCT — Firestore Service
 // ─────────────────────────────────────────
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'models.dart';
@@ -58,5 +58,33 @@ class FirestoreService {
   static Future<int> countAll(String collection) async {
     final snap = await _db.collection(collection).get().timeout(_timeout);
     return snap.docs.length;
+  }
+
+  // ── Programs ──────────────────────────────────────────────────────────
+  static Future<List<YearlyProgram>> fetchPrograms() async {
+    final snap = await _db.collection('programs')
+        .where('is_published', isEqualTo: true)
+        .get()
+        .timeout(_timeout);
+    final list = snap.docs.map((d) => YearlyProgram.fromFirestore(d)).toList();
+    list.sort((a, b) => a.startDate.compareTo(b.startDate));
+    return list;
+  }
+
+  // ── Feedback ──────────────────────────────────────────────────────────
+  static Future<void> submitFeedback({
+    required String name,
+    required String phone,
+    required String message,
+    required String category,
+  }) async {
+    await _db.collection('feedback').add({
+      'name':         name,
+      'phone':        phone,
+      'message':      message,
+      'category':     category,
+      'submitted_at': FieldValue.serverTimestamp(),
+      'read':         false,
+    }).timeout(_timeout);
   }
 }

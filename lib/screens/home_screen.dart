@@ -13,6 +13,7 @@ import '../widgets/cover_image.dart';
 import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
 import 'gurudev_screen.dart';
+import 'programs_screen.dart';
 
 typedef TabSwitcher = void Function(int index);
 
@@ -26,11 +27,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Magazine> _magazines = [];
   DailyQuote? _quote;
+  YearlyProgram? _nextProgram;
   bool _loading = true;
   String? _error;
 
-  // Sep 30 countdown — controlled via Remote Config show_launch_countdown
-  static final _launchDate = DateTime(2026, 9, 30, 6, 0, 0); // 6AM IST
+  // Sep 30 countdown
+  static final _launchDate = DateTime(2026, 9, 30, 6, 0, 0);
   Timer? _countdownTimer;
   Duration _remaining = Duration.zero;
 
@@ -69,11 +71,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final results = await Future.wait([
         FirestoreService.fetchMagazines(),
         QuotesService.getTodaysQuote(),
+        FirestoreService.fetchPrograms(),
       ]);
       if (mounted) setState(() {
-        _magazines = (results[0] as List<Magazine>).take(4).toList();
-        _quote     = results[1] as DailyQuote;
-        _loading   = false;
+        _magazines    = (results[0] as List<Magazine>).take(4).toList();
+        _quote        = results[1] as DailyQuote;
+        final programs = results[2] as List<YearlyProgram>;
+        _nextProgram  = programs.where((p) => p.isUpcoming).firstOrNull;
+        _loading      = false;
       });
     } catch (e, stack) {
       FirebaseCrashlytics.instance.recordError(e, stack);
@@ -89,6 +94,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  // Tab indices: 0=Home, 1=Library, 2=Audio, 3=Programs, 4=Centers, 5=More
   void _switchTab(int i) { if (widget.onSwitchTab != null) widget.onSwitchTab!(i); }
 
   @override
@@ -104,6 +110,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (_showCountdown) ...[_countdown(), const SizedBox(height: 20)],
+              if (_nextProgram != null) ...[
+                _programBanner(_nextProgram!),
+                const SizedBox(height: 20),
+              ],
               _sectionTitle('Explore'),
               const SizedBox(height: 10),
               _quickGrid(context),
@@ -120,6 +130,45 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 100),
             ]),
           )),
+        ]),
+      ),
+    );
+  }
+
+  Widget _programBanner(YearlyProgram prog) {
+    return GestureDetector(
+      onTap: () => _switchTab(3), // Programs tab is index 3
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.amberLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.saffron.withOpacity(0.4)),
+        ),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.saffron.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10)),
+            child: Icon(prog.typeIcon, color: AppColors.saffronDark, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('UPCOMING PROGRAM',
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+                color: AppColors.saffronDark, letterSpacing: 0.8)),
+            const SizedBox(height: 2),
+            Text(prog.title,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                color: AppColors.textDark),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text('${prog.displayDate} · ${prog.centerName}',
+              style: const TextStyle(fontSize: 11, color: AppColors.textMid),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ])),
+          const Icon(Icons.arrow_forward_ios, size: 13, color: AppColors.textMuted),
         ]),
       ),
     );
@@ -252,12 +301,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _QuickCard('About Gurudev', 'Life & teachings',
         Icons.self_improvement, const Color(0xFFE6F1FB), AppColors.blue,
         () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GurudevScreen()))),
+      _QuickCard('Programs', 'Yearly schedule',
+        Icons.event, AppColors.amberLight, AppColors.saffronDark,
+        () => _switchTab(3)), // Programs = index 3
       _QuickCard('Centers', 'Find us near you',
-        Icons.location_on, AppColors.amberLight, AppColors.amber,
-        () => _switchTab(3)),
-      _QuickCard('Audio', 'Discourses & talks',
-        Icons.headphones, const Color(0xFFEEEDFE), AppColors.purple,
-        () => _switchTab(2)),
+        Icons.location_on, const Color(0xFFEEEDFE), AppColors.purple,
+        () => _switchTab(4)), // Centers = index 4
     ],
   );
 

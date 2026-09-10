@@ -4,6 +4,7 @@ import '../core/constants.dart';
 import '../core/content_service.dart';
 import 'gurudev_screen.dart';
 import 'about_yct_screen.dart';
+import 'feedback_screen.dart';
 
 class MoreScreen extends StatefulWidget {
   const MoreScreen({super.key});
@@ -96,7 +97,17 @@ class _MoreScreenState extends State<MoreScreen> {
                   () => _open('mailto:${_contact.email}')),
               ]),
               const SizedBox(height: 20),
-              const Center(child: Text('Version 1.5.2 · Yoga Consciousness Trust',
+              const Text('FEEDBACK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: AppColors.textMid, letterSpacing: 0.5)),
+              const SizedBox(height: 8),
+              _MenuCard(items: [
+                _MenuItem(Icons.feedback_outlined, 'Send Feedback',
+                  'Suggestions, issues or queries',
+                  () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const FeedbackScreen()))),
+              ]),
+              const SizedBox(height: 20),
+              const Center(child: Text('Version 1.5.6 · Yoga Consciousness Trust',
                 style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
               const SizedBox(height: 80),
             ]),

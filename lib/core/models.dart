@@ -8,7 +8,7 @@ class Magazine {
   final String titleEnglish;
   final int month, year, volume, pages;
   final String pdfPath, pdfUrl;
-  final String coverImagePath, coverImageUrl; // NEW
+  final String coverImagePath, coverImageUrl;
   final bool isPublished;
 
   const Magazine({
@@ -58,7 +58,7 @@ class Magazine {
 class Book {
   final String id, title, titleTelugu, language, description;
   final String pdfPath, pdfUrl;
-  final String coverImagePath, coverImageUrl; // NEW
+  final String coverImagePath, coverImageUrl;
   final bool isPublished;
   final int sortOrder;
 
@@ -93,7 +93,7 @@ class Book {
   bool get hasCoverImage => coverImageUrl.isNotEmpty;
 
   Color get coverColor {
-    if (language == 'Telugu')   return AppColors.blue;
+    if (language == 'Telugu')    return AppColors.blue;
     if (language == 'Bilingual') return AppColors.purple;
     return AppColors.primary;
   }
@@ -159,5 +159,97 @@ class AppSettings {
       websiteUrl:       d['website_url']        as String? ?? def.websiteUrl,
       whatsappNumber:   d['whatsapp_number']    as String? ?? def.whatsappNumber,
     );
+  }
+}
+
+// ─────────────────────────────────────────
+// YearlyProgram — NEW
+// ─────────────────────────────────────────
+class YearlyProgram {
+  final String id;
+  final String title;
+  final String titleTelugu;
+  final String description;
+  final String centerName;
+  final String location;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final String type; // 'shibir' | 'class' | 'special' | 'online'
+  final bool isPublished;
+
+  const YearlyProgram({
+    required this.id,
+    required this.title,
+    required this.titleTelugu,
+    required this.description,
+    required this.centerName,
+    required this.location,
+    required this.startDate,
+    this.endDate,
+    required this.type,
+    required this.isPublished,
+  });
+
+  factory YearlyProgram.fromFirestore(DocumentSnapshot doc) {
+    final d = doc.data() as Map<String, dynamic>;
+    final start = (d['start_date'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final end   = (d['end_date']   as Timestamp?)?.toDate();
+    return YearlyProgram(
+      id:          doc.id,
+      title:       d['title']        as String? ?? '',
+      titleTelugu: d['title_telugu'] as String? ?? '',
+      description: d['description']  as String? ?? '',
+      centerName:  d['center_name']  as String? ?? '',
+      location:    d['location']     as String? ?? '',
+      startDate:   start,
+      endDate:     end,
+      type:        d['type']         as String? ?? 'special',
+      isPublished: d['is_published'] as bool? ?? true,
+    );
+  }
+
+  bool get isUpcoming =>
+      startDate.isAfter(DateTime.now().subtract(const Duration(days: 1)));
+
+  bool get isMultiDay =>
+      endDate != null &&
+      (endDate!.day != startDate.day || endDate!.month != startDate.month);
+
+  String get displayDate {
+    const months = ['','Jan','Feb','Mar','Apr','May','Jun',
+                    'Jul','Aug','Sep','Oct','Nov','Dec'];
+    final s = '${startDate.day} ${months[startDate.month]} ${startDate.year}';
+    if (isMultiDay) {
+      final e = '${endDate!.day} ${months[endDate!.month]} ${endDate!.year}';
+      return '$s – $e';
+    }
+    return s;
+  }
+
+  Color get typeColor {
+    switch (type) {
+      case 'shibir':  return AppColors.primary;
+      case 'class':   return AppColors.blue;
+      case 'online':  return AppColors.teal;
+      default:        return AppColors.saffronDark;
+    }
+  }
+
+  String get typeLabel {
+    switch (type) {
+      case 'shibir':  return 'Yoga Shibir';
+      case 'class':   return 'Class / Course';
+      case 'online':  return 'Online';
+      default:        return 'Special Program';
+    }
+  }
+
+  IconData get typeIcon {
+    switch (type) {
+      case 'shibir':  return Icons.self_improvement;
+      case 'class':   return Icons.school_outlined;
+      case 'online':  return Icons.videocam_outlined;
+      default:        return Icons.event;
+    }
   }
 }
