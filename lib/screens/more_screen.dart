@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../core/constants.dart';
 import '../core/content_service.dart';
 import 'gurudev_screen.dart';
@@ -14,13 +15,20 @@ class MoreScreen extends StatefulWidget {
 
 class _MoreScreenState extends State<MoreScreen> {
   ContactContent _contact = ContactContent.fallback();
+  String _version = '';
 
   @override
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    final c = await ContentService.fetchContact();
-    if (mounted) setState(() => _contact = c);
+    final results = await Future.wait([
+      ContentService.fetchContact(),
+      PackageInfo.fromPlatform(),
+    ]);
+    if (mounted) setState(() {
+      _contact = results[0] as ContactContent;
+      _version = (results[1] as PackageInfo).version;
+    });
   }
 
   Future<void> _open(String url) async {
@@ -107,8 +115,8 @@ class _MoreScreenState extends State<MoreScreen> {
                     MaterialPageRoute(builder: (_) => const FeedbackScreen()))),
               ]),
               const SizedBox(height: 20),
-              const Center(child: Text('Version 1.5.6 · Yoga Consciousness Trust',
-                style: TextStyle(fontSize: 11, color: AppColors.textMuted))),
+              Center(child: Text('Version $_version · Yoga Consciousness Trust',
+                style: const TextStyle(fontSize: 11, color: AppColors.textMuted))),
               const SizedBox(height: 80),
             ]),
           ),
