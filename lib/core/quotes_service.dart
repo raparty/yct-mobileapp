@@ -1,13 +1,14 @@
 // ─────────────────────────────────────────
 // YCT — Quotes Service
 // Fetches daily quotes from Firestore.
-// Falls back to built-in quotes if Firestore unavailable.
+// Falls back to built-in quotes if not enough uploaded.
 //
-// Firestore: quotes collection
-//   text (string)        — English quote
-//   text_telugu (string) — Telugu quote
-//   author (string)      — defaults to Gurudev
-//   sort_order (number)  — optional
+// Firestore structure:
+//   quotes (collection) → each doc has:
+//     text (string)         — English quote
+//     text_telugu (string)  — Telugu quote (optional)
+//     author (string)       — defaults to Gurudev
+//     sort_order (number)   — optional ordering
 // ─────────────────────────────────────────
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,17 +26,20 @@ class DailyQuote {
   });
 
   factory DailyQuote.fromFirestore(Map<String, dynamic> d) => DailyQuote(
-    text:       d['text']        as String? ?? '',
-    textTelugu: d['text_telugu'] as String? ?? '',
-    author:     d['author']      as String? ?? 'Yogacharya Sri Raparthi Rama Rao',
+    text:        d['text']         as String? ?? '',
+    textTelugu:  d['text_telugu']  as String? ?? '',
+    author:      d['author']       as String? ?? 'Yogacharya Sri Raparthi Rama Rao',
   );
 }
 
 class QuotesService {
   static final _db = FirebaseFirestore.instance;
   static const _timeout = Duration(seconds: 10);
+
+  // Cache — fetch once per app session
   static List<DailyQuote>? _cache;
 
+  // Built-in fallback quotes — used when Firestore has none
   static const _fallbackQuotes = [
     DailyQuote(
       text: 'The real yoga is not in the posture of the body, but in the stillness of the mind.',
@@ -46,8 +50,8 @@ class QuotesService {
       textTelugu: 'ఆత్మసాక్షాత్కారం చేరుకోవలసిన గమ్యం కాదు, గుర్తించవలసిన సత్యం.',
       author: 'Yogacharya Sri Raparthi Rama Rao'),
     DailyQuote(
-      text: 'Integration of four paths — Karma Yoga, Raja Yoga, Bhakti Yoga and Jnana Yoga — leads to liberation.',
-      textTelugu: 'కర్మ యోగ, రాజ యోగ, భక్తి యోగ మరియు జ్ఞాన యోగల సమన్వయం మోక్షానికి నడిపిస్తుంది.',
+      text: 'Karma Yoga, Raja Yoga, Bhakti Yoga and Jnana Yoga together lead to liberation.',
+      textTelugu: 'కర్మ యోగ, రాజ యోగ, భక్తి యోగ మరియు జ్ఞాన యోగ కలిసి మోక్షానికి నడిపిస్తాయి.',
       author: 'Yogacharya Sri Raparthi Rama Rao'),
     DailyQuote(
       text: 'The Guru is not a person but a principle — the light of knowledge that removes darkness.',
@@ -59,7 +63,7 @@ class QuotesService {
       author: 'Yogacharya Sri Raparthi Rama Rao'),
     DailyQuote(
       text: 'Viveka — discriminative wisdom — is the most essential quality on the spiritual path.',
-      textTelugu: 'వివేకం ఆధ్యాత్మిక మార్గంలో అత్యంత అవసరమైన గుణం.',
+      textTelugu: 'వివేకం — వివేచనాశక్తి — ఆధ్యాత్మిక మార్గంలో అత్యంత అవసరమైన గుణం.',
       author: 'Yogacharya Sri Raparthi Rama Rao'),
     DailyQuote(
       text: 'The body is the temple; keep it pure so the Divine may dwell within.',
@@ -70,7 +74,8 @@ class QuotesService {
   static Future<List<DailyQuote>> _fetchAll() async {
     if (_cache != null) return _cache!;
     try {
-      final snap = await _db.collection('quotes').get().timeout(_timeout);
+      final snap = await _db.collection('quotes')
+          .get().timeout(_timeout);
       final list = snap.docs
           .map((d) => DailyQuote.fromFirestore(d.data()))
           .where((q) => q.text.isNotEmpty)
@@ -83,7 +88,8 @@ class QuotesService {
     return _cache!;
   }
 
-  /// Same quote for everyone on the same day
+  /// Returns today's quote — deterministic by day of year.
+  /// Same quote for everyone on the same day.
   static Future<DailyQuote> getTodaysQuote() async {
     final quotes = await _fetchAll();
     final dayOfYear = DateTime.now()
@@ -92,7 +98,7 @@ class QuotesService {
     return quotes[dayOfYear % quotes.length];
   }
 
-  /// Random quote — for refresh
+  /// Returns a random quote — for refresh button.
   static Future<DailyQuote> getRandomQuote() async {
     final quotes = await _fetchAll();
     return quotes[Random().nextInt(quotes.length)];
