@@ -412,83 +412,125 @@ class _PhotoCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 8, offset: const Offset(0, 3))]),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: Stack(children: [
-
-            // ── Background image ──────────────────────────
-            Positioned.fill(
-              child: card.imageUrl.isNotEmpty
-                  ? Image.network(
-                      card.imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) =>
-                          progress == null ? child : _fallbackBg(fallbackColors),
-                      errorBuilder: (_, __, ___) => _fallbackBg(fallbackColors))
-                  : _fallbackBg(fallbackColors)),
-
-            // ── Bottom gradient overlay ───────────────────
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.15),
-                      Colors.black.withOpacity(0.72),
-                    ],
-                    stops: const [0.35, 0.60, 1.0])))),
-
-            // ── Lotus watermark ───────────────────────────
-            Positioned(
-              right: -8, bottom: 28,
-              child: Opacity(
-                opacity: 0.10,
-                child: Icon(Icons.spa, size: 80, color: Colors.white))),
-
-            // ── Text + chevron ────────────────────────────
-            Positioned(
-              left: 12, right: 12, bottom: 12,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(card.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          height: 1.2,
-                          shadows: [Shadow(color: Colors.black45, blurRadius: 4)]))),
-                      const SizedBox(height: 3),
-                      Text(card.subtitle,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
-                          fontSize: 11,
-                          shadows: const [Shadow(color: Colors.black45, blurRadius: 4)])),
-                    ])),
-                  Container(
-                    width: 24, height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(6)),
-                    child: const Icon(Icons.chevron_right,
-                      color: Colors.white, size: 18)),
-                ])),
-          ])));
+          child: Stack(
+            children: [
+              // Background image
+              Positioned.fill(
+                child: card.imageUrl.isNotEmpty
+                    ? Image.network(
+                        card.imageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (_, child, progress) =>
+                            progress == null ? child : _fallbackBg(fallbackColors),
+                        errorBuilder: (_, __, ___) => _fallbackBg(fallbackColors),
+                      )
+                    : _fallbackBg(fallbackColors),
+              ),
+              // Bottom gradient overlay
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.15),
+                        Colors.black.withOpacity(0.72),
+                      ],
+                      stops: const [0.35, 0.60, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+              // Lotus watermark
+              Positioned(
+                right: -8,
+                bottom: 28,
+                child: Opacity(
+                  opacity: 0.10,
+                  child: const Icon(Icons.spa, size: 80, color: Colors.white),
+                ),
+              ),
+              // Text + chevron
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            card.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                              shadows: [
+                                Shadow(color: Colors.black45, blurRadius: 4),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            card.subtitle,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: 11,
+                              shadows: const [
+                                Shadow(color: Colors.black45, blurRadius: 4),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _fallbackBg(List<Color> colors) => Container(
     decoration: BoxDecoration(
       gradient: LinearGradient(
-        begin: Alignment.topLeft, end: Alignment.bottomRight,
-        colors: colors)));
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: colors,
+      ),
+    ),
+  );
 }
