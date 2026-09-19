@@ -5,6 +5,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
 import '../core/firestore_service.dart';
+import '../core/models.dart';
 import '../core/connectivity_service.dart';
 import '../core/quotes_service.dart';
 import '../core/remote_config_service.dart';
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Magazine> _magazines = [];
   DailyQuote? _quote;
   List<HomeCard> _cards = [];
+  List<YearlyProgram> _programs = [];
   bool _loading = true;
   String? _error;
 
@@ -73,11 +75,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         FirestoreService.fetchMagazines(),
         QuotesService.getTodaysQuote(),
         HomeCardsService.fetch(),
+        FirestoreService.fetchPrograms(),
       ]);
       if (mounted) setState(() {
         _magazines = (results[0] as List<Magazine>).take(4).toList();
         _quote     = results[1] as DailyQuote;
         _cards     = (results[2] as List<HomeCard>).where((c) => c.enabled).toList();
+        final allPrograms = results[3] as List<YearlyProgram>;
+        _programs  = allPrograms.where((p) => p.isUpcoming).take(3).toList();
         _loading   = false;
       });
     } catch (e, stack) {
@@ -129,6 +134,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           SliverToBoxAdapter(child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _quoteBox(),
+              const SizedBox(height: 16),
               if (_showCountdown) ...[_countdown(), const SizedBox(height: 20)],
               _sectionLabel('EXPLORE'),
               const SizedBox(height: 10),
@@ -140,6 +147,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               _sectionLabel('LATEST ISSUES'),
               const SizedBox(height: 10),
               _loading ? const SizedBox(height: 160) : _latestMags(),
+              if (_programs.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _sectionLabel('UPCOMING PROGRAMS'),
+                const SizedBox(height: 10),
+                _upcomingPrograms(),
+              ],
               const SizedBox(height: 20),
               _sectionLabel('ABOUT YCT'),
               const SizedBox(height: 10),
@@ -154,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Header ──────────────────────────────────────────────────────────────────
   Widget _header() => SliverAppBar(
-    expandedHeight: 200, pinned: true,
+    expandedHeight: 70, pinned: true, floating: false,
     backgroundColor: const Color(0xFF2D5A46),
     flexibleSpace: FlexibleSpaceBar(
       background: Container(
@@ -162,51 +175,52 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           gradient: LinearGradient(
             begin: Alignment.topLeft, end: Alignment.bottomRight,
             colors: [Color(0xFF2D5A46), Color(0xFF1E3F31)])),
-        child: SafeArea(child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(width: 44, height: 44,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4)]),
-                child: ClipOval(child: Image.asset('assets/images/yct_logo.png', fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Center(child: Text('YCT',
-                    style: TextStyle(color: Color(0xFF2D5A46), fontSize: 9, fontWeight: FontWeight.bold)))))),
-              const SizedBox(width: 10),
-              const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Yoga Consciousness Trust',
-                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                Text('యోగ చైతన్య సంస్థ',
-                  style: TextStyle(color: Color(0xFF80CBC4), fontSize: 11)),
-              ]),
-            ]),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.2))),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Row(children: [
-                  Icon(Icons.wb_sunny_outlined, color: Color(0xFF80CBC4), size: 12),
-                  SizedBox(width: 4),
-                  Text("Today's Teaching",
-                    style: TextStyle(color: Color(0xFF80CBC4), fontSize: 10)),
-                ]),
-                const SizedBox(height: 6),
-                Text('"${_quote?.text ?? 'The real yoga is not in the posture of the body, but in the stillness of the mind.'}"',
-                  style: const TextStyle(color: Colors.white, fontSize: 11,
-                    fontStyle: FontStyle.italic, height: 1.5)),
-                const SizedBox(height: 4),
-                Text('— ${_quote?.author ?? 'Yogacharya Sri Raparthi Rama Rao'}',
-                  style: const TextStyle(color: Color(0xFFF9D371), fontSize: 10)),
-              ]),
-            ),
-          ]),
-        )),
       ),
+      title: Row(children: [
+        Container(width: 32, height: 32,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white,
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4)]),
+          child: ClipOval(child: Image.asset('assets/images/yct_logo.png', fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const Center(child: Text('YCT',
+              style: TextStyle(color: Color(0xFF2D5A46), fontSize: 7, fontWeight: FontWeight.bold)))))),
+        const SizedBox(width: 8),
+        const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Yoga Consciousness Trust',
+            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text('యోగ చైతన్య సంస్థ',
+            style: TextStyle(color: Color(0xFF80CBC4), fontSize: 9)),
+        ]),
+      ]),
+      titlePadding: const EdgeInsets.only(left: 16, bottom: 12),
     ),
+  );
+
+  Widget _quoteBox() => Container(
+    margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft, end: Alignment.bottomRight,
+        colors: [Color(0xFF2D5A46), Color(0xFF1E3F31)]),
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [BoxShadow(
+        color: const Color(0xFF2D5A46).withOpacity(0.25),
+        blurRadius: 10, offset: const Offset(0, 4))]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Row(children: [
+        Icon(Icons.wb_sunny_outlined, color: Color(0xFF80CBC4), size: 12),
+        SizedBox(width: 4),
+        Text("Today's Teaching",
+          style: TextStyle(color: Color(0xFF80CBC4), fontSize: 10)),
+      ]),
+      const SizedBox(height: 8),
+      Text('"${_quote?.text ?? 'The real yoga is not in the posture of the body, but in the stillness of the mind.'}"',
+        style: const TextStyle(color: Colors.white, fontSize: 12,
+          fontStyle: FontStyle.italic, height: 1.5)),
+      const SizedBox(height: 6),
+      Text('— ${_quote?.author ?? 'Yogacharya Sri Raparthi Rama Rao'}',
+        style: const TextStyle(color: Color(0xFFF9D371), fontSize: 10)),
+    ]),
   );
 
   // ── Photo Cards Grid ─────────────────────────────────────────────────────────
@@ -292,6 +306,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ));
 
   // ── About Card ──────────────────────────────────────────────────────────────
+  Widget _upcomingPrograms() => Column(
+    children: _programs.map((p) => GestureDetector(
+      onTap: () => Navigator.push(context,
+        MaterialPageRoute(builder: (_) => const ProgramsScreen())),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8EDE9)),
+          boxShadow: [BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4, offset: const Offset(0, 2))]),
+        child: Row(children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5EE),
+              borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.event, color: Color(0xFF2D5A46), size: 22)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(p.title,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A))),
+              const SizedBox(height: 3),
+              Text(p.displayDate,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+              if (p.location.isNotEmpty)
+                Text(p.location,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            ])),
+          const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF), size: 18),
+        ]),
+      ),
+    )).toList(),
+  );
+
   Widget _aboutCard() => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),

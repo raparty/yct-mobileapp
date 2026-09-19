@@ -67,7 +67,7 @@ class _LibraryScreenState extends State<LibraryScreen>
         headerSliverBuilder: (_, __) => [
           SliverAppBar(
             pinned: true,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.bg,
             foregroundColor: AppColors.textDark,
             title: const Text('Publications',
               style: TextStyle(color: AppColors.textDark,
