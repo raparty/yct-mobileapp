@@ -38,7 +38,7 @@ class HomeCardsService {
   static List<HomeCard>? _cache;
 
   // Default cards — shown if Firestore unavailable
-  static List<HomeCard> _defaults() => [
+  static List<HomeCard> defaults() => [
     HomeCard(
       id: 'publications',
       title: 'Publications',
@@ -71,7 +71,7 @@ class HomeCardsService {
       final doc = await _db.collection('settings').doc('home_cards')
           .get().timeout(_timeout);
       if (!doc.exists || doc.data() == null) {
-        _cache = _defaults();
+        _cache = defaults();
         return _cache!;
       }
       final data = doc.data()!;
@@ -81,10 +81,10 @@ class HomeCardsService {
           cards.add(HomeCard.fromFirestore(id, Map<String,dynamic>.from(data[id])));
         }
       }
-      _cache = cards.isEmpty ? _defaults() : cards;
+      _cache = cards.isEmpty ? defaults() : cards;
     } catch (e, stack) {
       FirebaseCrashlytics.instance.recordError(e, stack, fatal: false);
-      _cache = _defaults();
+      _cache = defaults();
     }
     return _cache!;
   }

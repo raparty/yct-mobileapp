@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Photo Cards Grid ─────────────────────────────────────────────────────────
   Widget _cardGrid(BuildContext context) {
-    final cards = _cards.isEmpty ? HomeCardsService._defaults() : _cards;
+    final cards = _cards.isEmpty ? HomeCardsService.defaults() : _cards;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -467,7 +467,7 @@ class _PhotoCard extends StatelessWidget {
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           height: 1.2,
-                          shadows: [Shadow(color: Colors.black45, blurRadius: 4)])),
+                          shadows: [Shadow(color: Colors.black45, blurRadius: 4)]))),
                       const SizedBox(height: 3),
                       Text(card.subtitle,
                         style: TextStyle(
