@@ -5,7 +5,6 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
 import '../core/firestore_service.dart';
-import '../core/models.dart';
 import '../core/connectivity_service.dart';
 import '../core/quotes_service.dart';
 import '../core/remote_config_service.dart';
@@ -16,7 +15,6 @@ import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
 import 'gurudev_screen.dart';
 import 'programs_screen.dart';
-import 'centers_screen.dart';
 
 typedef TabSwitcher = void Function(int index);
 
@@ -99,6 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  // Tab indices: Home=0 Library=1 Audio=2 Programs=3 Centers=4 More=5
   void _switchTab(int i) { if (widget.onSwitchTab != null) widget.onSwitchTab!(i); }
 
   void _onCardTap(BuildContext context, HomeCard card) {
@@ -113,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgramsScreen()));
         break;
       case 'centers':
-        _switchTab(3);
+        _switchTab(4); // Centers is tab index 4
         break;
     }
   }
@@ -121,9 +120,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F5),
+      backgroundColor: Colors.transparent, // shows bg_texture through
       body: RefreshIndicator(
-        color: const Color(0xFF2D5A46),
+        color: AppColors.primary,
         onRefresh: () async {
           HomeCardsService.clearCache();
           QuotesService.clearCache();
@@ -141,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 10),
               _loading
                   ? const SizedBox(height: 320,
-                      child: Center(child: CircularProgressIndicator(color: Color(0xFF2D5A46))))
+                      child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
                   : _cardGrid(context),
               const SizedBox(height: 20),
               _sectionLabel('LATEST ISSUES'),
@@ -165,65 +164,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
   Widget _header() => SliverAppBar(
-    expandedHeight: 70, pinned: true, floating: false,
-    backgroundColor: const Color(0xFF2D5A46),
-    flexibleSpace: FlexibleSpaceBar(
-      background: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [Color(0xFF2D5A46), Color(0xFF1E3F31)])),
-      ),
-      title: Row(children: [
-        Container(width: 32, height: 32,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white,
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4)]),
-          child: ClipOval(child: Image.asset('assets/images/yct_logo.png', fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const Center(child: Text('YCT',
-              style: TextStyle(color: Color(0xFF2D5A46), fontSize: 7, fontWeight: FontWeight.bold)))))),
-        const SizedBox(width: 8),
-        const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Yoga Consciousness Trust',
-            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-          Text('యోగ చైతన్య సంస్థ',
-            style: TextStyle(color: Color(0xFF80CBC4), fontSize: 9)),
-        ]),
+    pinned: true,
+    backgroundColor: AppColors.primaryDark,
+    toolbarHeight: 56,
+    title: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle, color: Colors.white,
+            boxShadow: [BoxShadow(
+              color: Colors.black.withOpacity(0.2), blurRadius: 4)]),
+          child: ClipOval(child: Image.asset(
+            'assets/images/yct_logo.png', fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const Center(
+              child: Text('YCT', style: TextStyle(
+                color: AppColors.primaryDark, fontSize: 7,
+                fontWeight: FontWeight.bold)))))),
+        const SizedBox(width: 10),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Yoga Consciousness Trust',
+              style: TextStyle(color: Colors.white, fontSize: 13,
+                fontWeight: FontWeight.w600)),
+            Text('యోగ చైతన్య సంస్థ',
+              style: TextStyle(color: AppColors.teal, fontSize: 10)),
+          ]),
       ]),
-      titlePadding: const EdgeInsets.only(left: 16, bottom: 12),
-    ),
+    titleSpacing: 16,
   );
 
   Widget _quoteBox() => Container(
-    margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
       gradient: const LinearGradient(
         begin: Alignment.topLeft, end: Alignment.bottomRight,
-        colors: [Color(0xFF2D5A46), Color(0xFF1E3F31)]),
+        colors: [AppColors.primaryDark, AppColors.primary]),
       borderRadius: BorderRadius.circular(14),
       boxShadow: [BoxShadow(
-        color: const Color(0xFF2D5A46).withOpacity(0.25),
+        color: AppColors.primary.withOpacity(0.25),
         blurRadius: 10, offset: const Offset(0, 4))]),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Row(children: [
-        Icon(Icons.wb_sunny_outlined, color: Color(0xFF80CBC4), size: 12),
+        Icon(Icons.wb_sunny_outlined, color: AppColors.teal, size: 12),
         SizedBox(width: 4),
         Text("Today's Teaching",
-          style: TextStyle(color: Color(0xFF80CBC4), fontSize: 10)),
+          style: TextStyle(color: AppColors.teal, fontSize: 10)),
       ]),
       const SizedBox(height: 8),
       Text('"${_quote?.text ?? 'The real yoga is not in the posture of the body, but in the stillness of the mind.'}"',
         style: const TextStyle(color: Colors.white, fontSize: 12,
           fontStyle: FontStyle.italic, height: 1.5)),
       const SizedBox(height: 6),
-      Text('— ${_quote?.author ?? 'Yogacharya Sri Raparthi Rama Rao'}',
+      Text('— ${_quote?.author ?? AppStrings.guruName}',
         style: const TextStyle(color: Color(0xFFF9D371), fontSize: 10)),
     ]),
   );
 
-  // ── Photo Cards Grid ─────────────────────────────────────────────────────────
   Widget _cardGrid(BuildContext context) {
     final cards = _cards.isEmpty ? HomeCardsService.defaults() : _cards;
     return GridView.builder(
@@ -234,23 +235,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         crossAxisSpacing: 10, mainAxisSpacing: 10),
       itemCount: cards.length,
       itemBuilder: (ctx, i) => _PhotoCard(
-        card: cards[i],
-        onTap: () => _onCardTap(ctx, cards[i]),
-      ),
+        card: cards[i], onTap: () => _onCardTap(ctx, cards[i])),
     );
   }
 
-  // ── Latest Magazines ────────────────────────────────────────────────────────
   Widget _latestMags() => _magazines.isEmpty
       ? Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE8E8E8))),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border)),
           child: const Column(children: [
-            Icon(Icons.menu_book_outlined, color: Color(0xFFB4B2A9), size: 36),
+            Icon(Icons.menu_book_outlined, color: AppColors.textMuted, size: 36),
             SizedBox(height: 8),
-            Text('Upload magazines via the admin page', textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF888780), fontSize: 12)),
+            Text('Upload magazines via the admin page',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textMid, fontSize: 12)),
           ]))
       : SizedBox(
           height: 160,
@@ -266,15 +267,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   child: Container(
                     width: 90,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5EE),
+                      color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF2D5A46).withOpacity(0.3))),
-                    child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.arrow_forward, color: Color(0xFF2D5A46)),
-                      SizedBox(height: 6),
-                      Text('View all', style: TextStyle(
-                        color: Color(0xFF2D5A46), fontSize: 11, fontWeight: FontWeight.w500)),
-                    ])));
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3))),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.arrow_forward, color: AppColors.primary),
+                        SizedBox(height: 6),
+                        Text('View all', style: TextStyle(
+                          color: AppColors.primary, fontSize: 11,
+                          fontWeight: FontWeight.w500)),
+                      ])));
               }
               final mag = _magazines[i];
               return GestureDetector(
@@ -283,29 +288,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: SizedBox(width: 100, child: Column(children: [
                   SizedBox(height: 120, width: 100,
                     child: MagazineCover(
-                      imageUrl: mag.coverImageUrl,
+                      imageUrl:      mag.coverImageUrl,
                       fallbackColor: mag.coverColor,
-                      month: mag.displayMonth,
-                      year: mag.year,
-                      monthNumber: mag.month,
-                      borderRadius: 8)),
+                      month:         mag.displayMonth,
+                      year:          mag.year,
+                      monthNumber:   mag.month,
+                      borderRadius:  8)),
                   const SizedBox(height: 4),
                   Text(mag.titleTelugu,
-                    style: const TextStyle(fontSize: 10, color: Color(0xFF2C2C2A)),
+                    style: const TextStyle(fontSize: 10, color: AppColors.textDark),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (i == 0) Container(
                     margin: const EdgeInsets.only(top: 2),
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5EE),
+                      color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(10)),
                     child: const Text('Latest',
-                      style: TextStyle(fontSize: 9, color: Color(0xFF1E3F31)))),
+                      style: TextStyle(fontSize: 9, color: AppColors.primaryDark))),
                 ])));
             },
           ));
 
-  // ── About Card ──────────────────────────────────────────────────────────────
   Widget _upcomingPrograms() => Column(
     children: _programs.map((p) => GestureDetector(
       onTap: () => Navigator.push(context,
@@ -314,9 +318,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withOpacity(0.90),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE8EDE9)),
+          border: Border.all(color: AppColors.border),
           boxShadow: [BoxShadow(
             color: Colors.black.withOpacity(0.04),
             blurRadius: 4, offset: const Offset(0, 2))]),
@@ -324,24 +328,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5EE),
+              color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.event, color: Color(0xFF2D5A46), size: 22)),
+            child: const Icon(Icons.event, color: AppColors.primary, size: 22)),
           const SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(p.title,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A))),
+                style: const TextStyle(fontSize: 13,
+                  fontWeight: FontWeight.w600, color: AppColors.textDark)),
               const SizedBox(height: 3),
               Text(p.displayDate,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                style: const TextStyle(fontSize: 11, color: AppColors.textMid)),
               if (p.location.isNotEmpty)
                 Text(p.location,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMid)),
             ])),
-          const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF), size: 18),
+          const Icon(Icons.chevron_right, color: AppColors.textLight, size: 18),
         ]),
       ),
     )).toList(),
@@ -349,14 +353,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _aboutCard() => Container(
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFE8E8E8))),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.90),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: AppColors.border)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Yoga Consciousness Trust',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1E3F31))),
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+          color: AppColors.primaryDark)),
       const SizedBox(height: 6),
-      const Text('Founded by Yogacharya Sri Raparthi Rama Rao, YCT has been spreading the teachings of Anushtana Yoga Vedanta since 1990.',
-        style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), height: 1.5)),
+      const Text('Founded by Yogacharya Sri Raparthi Rama Rao, YCT has been '
+        'spreading the teachings of Anushtana Yoga Vedanta since 1990.',
+        style: TextStyle(fontSize: 12, color: AppColors.textMid, height: 1.5)),
       const SizedBox(height: 12),
       Row(children: [
         _chip(Icons.language, 'Website', () => _openUrl(AppStrings.website)),
@@ -365,25 +373,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ]),
     ]));
 
-  Widget _chip(IconData icon, String label, VoidCallback onTap) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F5EE),
-        borderRadius: BorderRadius.circular(20)),
-      child: Row(children: [
-        Icon(icon, size: 14, color: const Color(0xFF2D5A46)),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(
-          fontSize: 11, color: Color(0xFF1E3F31), fontWeight: FontWeight.w500)),
-      ])));
+  Widget _chip(IconData icon, String label, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(20)),
+          child: Row(children: [
+            Icon(icon, size: 14, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(
+              fontSize: 11, color: AppColors.primaryDark,
+              fontWeight: FontWeight.w500)),
+          ])));
 
   Widget _sectionLabel(String t) => Text(t,
     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-      color: Color(0xFF9CA3AF), letterSpacing: 0.8));
+      color: AppColors.textMid, letterSpacing: 0.8));
 
-  // ── Countdown ───────────────────────────────────────────────────────────────
   Widget _countdown() {
     final days    = _remaining.inDays;
     final hours   = _remaining.inHours.remainder(24);
@@ -393,21 +402,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3F31), Color(0xFF2D5A46)],
+          colors: [AppColors.primaryDark, AppColors.primary],
           begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(
-          color: const Color(0xFF2D5A46).withOpacity(0.3),
+          color: AppColors.primary.withOpacity(0.3),
           blurRadius: 12, offset: const Offset(0, 4))]),
       child: Column(children: [
         const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.celebration, color: Color(0xFFF9D371), size: 16),
+          Icon(Icons.celebration, color: AppColors.saffron, size: 16),
           SizedBox(width: 6),
-          Text('Official Launch',
-            style: TextStyle(color: Color(0xFFF9D371),
-              fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+          Text('Official Launch', style: TextStyle(
+            color: AppColors.saffron, fontSize: 12,
+            fontWeight: FontWeight.w600, letterSpacing: 0.5)),
           SizedBox(width: 6),
-          Icon(Icons.celebration, color: Color(0xFFF9D371), size: 16),
+          Icon(Icons.celebration, color: AppColors.saffron, size: 16),
         ]),
         const SizedBox(height: 4),
         const Text('September 30, 2026',
@@ -434,22 +443,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         style: const TextStyle(color: Colors.white,
           fontSize: 24, fontWeight: FontWeight.bold)))),
     const SizedBox(height: 4),
-    Text(l, style: const TextStyle(color: Colors.white54, fontSize: 9, letterSpacing: 0.5)),
+    Text(l, style: const TextStyle(
+      color: Colors.white54, fontSize: 9, letterSpacing: 0.5)),
   ]);
 
   Widget _div() => const Padding(
     padding: EdgeInsets.only(bottom: 16),
-    child: Text(':', style: TextStyle(color: Colors.white54,
-      fontSize: 22, fontWeight: FontWeight.bold)));
+    child: Text(':', style: TextStyle(
+      color: Colors.white54, fontSize: 22, fontWeight: FontWeight.bold)));
 }
 
-// ── Photo Card Widget ────────────────────────────────────────────────────────
 class _PhotoCard extends StatelessWidget {
   final HomeCard card;
   final VoidCallback onTap;
   const _PhotoCard({required this.card, required this.onTap});
 
-  // Fallback gradient per card when image fails
   static const _fallbacks = {
     'publications': [Color(0xFF1B4D1B), Color(0xFF2D7A2D)],
     'gurudev':      [Color(0xFF0A1F3A), Color(0xFF1A3A5A)],
@@ -460,132 +468,75 @@ class _PhotoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fallbackColors = _fallbacks[card.id] ??
-        [const Color(0xFF2D5A46), const Color(0xFF1E3F31)];
-
+        [AppColors.primaryDark, AppColors.primary];
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
+          boxShadow: [BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 8, offset: const Offset(0, 3))]),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              // Background image
-              Positioned.fill(
-                child: card.imageUrl.isNotEmpty
-                    ? Image.network(
-                        card.imageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (_, child, progress) =>
-                            progress == null ? child : _fallbackBg(fallbackColors),
-                        errorBuilder: (_, __, ___) => _fallbackBg(fallbackColors),
-                      )
-                    : _fallbackBg(fallbackColors),
-              ),
-              // Bottom gradient overlay
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.15),
-                        Colors.black.withOpacity(0.72),
-                      ],
-                      stops: const [0.35, 0.60, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              // Lotus watermark
-              Positioned(
-                right: -8,
-                bottom: 28,
-                child: Opacity(
-                  opacity: 0.10,
-                  child: const Icon(Icons.spa, size: 80, color: Colors.white),
-                ),
-              ),
-              // Text + chevron
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            card.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              height: 1.2,
-                              shadows: [
-                                Shadow(color: Colors.black45, blurRadius: 4),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            card.subtitle,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.85),
-                              fontSize: 11,
-                              shadows: const [
-                                Shadow(color: Colors.black45, blurRadius: 4),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(
-                        Icons.chevron_right,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+          child: Stack(children: [
+            Positioned.fill(
+              child: card.imageUrl.isNotEmpty
+                  ? Image.network(card.imageUrl, fit: BoxFit.cover,
+                      loadingBuilder: (_, child, progress) =>
+                          progress == null ? child : _fallbackBg(fallbackColors),
+                      errorBuilder: (_, __, ___) => _fallbackBg(fallbackColors))
+                  : _fallbackBg(fallbackColors)),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.15),
+                      Colors.black.withOpacity(0.72),
+                    ],
+                    stops: const [0.35, 0.60, 1.0])))),
+            Positioned(
+              right: -8, bottom: 28,
+              child: Opacity(opacity: 0.10,
+                child: const Icon(Icons.spa, size: 80, color: Colors.white))),
+            Positioned(
+              left: 12, right: 12, bottom: 12,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(card.title,
+                        style: const TextStyle(
+                          color: Colors.white, fontSize: 15,
+                          fontWeight: FontWeight.w700, height: 1.2,
+                          shadows: [Shadow(color: Colors.black45, blurRadius: 4)])),
+                      const SizedBox(height: 3),
+                      Text(card.subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.85), fontSize: 11,
+                          shadows: const [Shadow(
+                            color: Colors.black45, blurRadius: 4)])),
+                    ])),
+                  Container(
+                    width: 24, height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(6)),
+                    child: const Icon(Icons.chevron_right,
+                      color: Colors.white, size: 18)),
+                ])),
+          ]))));
   }
 
   Widget _fallbackBg(List<Color> colors) => Container(
     decoration: BoxDecoration(
       gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: colors,
-      ),
-    ),
-  );
+        begin: Alignment.topLeft, end: Alignment.bottomRight,
+        colors: colors)));
 }
