@@ -74,7 +74,7 @@ class YCTApp extends StatelessWidget {
           seedColor: AppColors.primary,
           primary: AppColors.primary,
           background: AppColors.bg),
-        scaffoldBackgroundColor: AppColors.bg,
+        scaffoldBackgroundColor: Colors.transparent,
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -82,6 +82,17 @@ class YCTApp extends StatelessWidget {
         fontFamily: 'Roboto',
       ),
       home: const MainShell(),
+      builder: (context, child) => Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg_texture.jpg'),
+            repeat: ImageRepeat.repeat,
+            fit: BoxFit.none,
+            scale: 1.8,
+          ),
+        ),
+        child: child!,
+      ),
     );
   }
 }

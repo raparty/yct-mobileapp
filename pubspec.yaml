@@ -1,7 +1,7 @@
 name: yct_app
 description: Yoga Consciousness Trust — Official App
 publish_to: 'none'
-version: 1.6.0+29
+version: 1.6.1+30
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -38,6 +38,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/bg_texture.jpg
     - assets/images/
     - assets/images/yct_logo.png
     - assets/images/guruji.jpg
