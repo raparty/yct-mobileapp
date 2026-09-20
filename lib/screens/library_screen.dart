@@ -62,12 +62,12 @@ class _LibraryScreenState extends State<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Colors.transparent,
       body: NestedScrollView(
         headerSliverBuilder: (_, __) => [
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.bg,
+            backgroundColor: Colors.transparent,
             foregroundColor: AppColors.textDark,
             title: const Text('Publications',
               style: TextStyle(color: AppColors.textDark,

@@ -65,7 +65,7 @@ class _MagazineArchiveScreenState extends State<MagazineArchiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('యోగ చైతన్య ప్రభ',

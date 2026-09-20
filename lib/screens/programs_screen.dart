@@ -48,7 +48,7 @@ class _ProgramsScreenState extends State<ProgramsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Programs'),
         backgroundColor: AppColors.primary,

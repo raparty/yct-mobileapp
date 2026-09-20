@@ -32,7 +32,7 @@ class _CentersScreenState extends State<CentersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('Our Centers'), backgroundColor: AppColors.primary),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))

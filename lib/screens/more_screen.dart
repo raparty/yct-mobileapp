@@ -39,7 +39,7 @@ class _MoreScreenState extends State<MoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('More'), backgroundColor: AppColors.primary),
       body: SingleChildScrollView(
         child: Column(children: [

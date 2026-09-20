@@ -24,7 +24,7 @@ class _AboutYctScreenState extends State<AboutYctScreen> {
   Widget build(BuildContext context) {
     final c = _content ?? AboutContent.fallback();
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('About YCT'), backgroundColor: AppColors.primary),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))

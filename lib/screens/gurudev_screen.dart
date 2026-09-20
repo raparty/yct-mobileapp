@@ -24,7 +24,7 @@ class _GurudevScreenState extends State<GurudevScreen> {
   Widget build(BuildContext context) {
     final c = _content ?? GurudevContent.fallback();
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Colors.transparent,
       body: CustomScrollView(slivers: [
         SliverAppBar(
           expandedHeight: 280, pinned: true,
