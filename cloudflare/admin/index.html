@@ -386,7 +386,10 @@
         <div><label>Quote (Telugu)</label><textarea id="qt" rows="3" placeholder="తెలుగులో నమోదు చేయండి (ఐచ్ఛికం)"></textarea></div>
       </div>
       <div class="row row1"><div><label>Source / Attribution</label><input id="qs" placeholder="e.g. Yogacharya Sri Raparthi Rama Rao — Yoga Chaitanya Prabha, Jan 2020"></div></div>
-      <button class="btn" onclick="saveQuote()">➕ Add Quote</button>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button id="qsavebtn" class="btn" onclick="saveQuote()" style="width:auto;padding:9px 22px">➕ Add Quote</button>
+        <button id="qcancelbtn" onclick="cancelQuoteEdit()" style="display:none;background:none;border:1px solid #888;color:#555;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px">✕ Cancel Edit</button>
+      </div>
       <div class="res" id="qres"></div>
     </div>
     <div class="card">
@@ -1156,6 +1159,33 @@ window.delFeedback = async (id) => {
 };
 
 // ── QUOTES ────────────────────────────────────────────────────────────────
+let _editingQuoteId=null;
+function _setQuoteEditMode(id,en,te,src){
+  _editingQuoteId=id;
+  document.getElementById('qe').value=en||'';
+  document.getElementById('qt').value=te||'';
+  document.getElementById('qs').value=src||'';
+  document.getElementById('qe').focus();
+  const btn=document.getElementById('qsavebtn');
+  if(btn){btn.textContent='💾 Update Quote';}
+  const cancel=document.getElementById('qcancelbtn');
+  if(cancel){cancel.style.display='inline-block';}
+  const res=document.getElementById('qres');
+  res.style.display='block'; res.className='res ok';
+  res.textContent='✏️ Editing quote — make changes and click Update Quote.';
+}
+function _clearQuoteEditMode(){
+  _editingQuoteId=null;
+  document.getElementById('qe').value='';
+  document.getElementById('qt').value='';
+  document.getElementById('qs').value='';
+  const btn=document.getElementById('qsavebtn');
+  if(btn){btn.textContent='➕ Add Quote';}
+  const cancel=document.getElementById('qcancelbtn');
+  if(cancel){cancel.style.display='none';}
+  const res=document.getElementById('qres');
+  res.style.display='none';
+}
 async function loadQuotes(){
   const el=document.getElementById('qlist');
   if(!el) return;
@@ -1165,6 +1195,9 @@ async function loadQuotes(){
     el.innerHTML=snap.docs.map(d=>{
       const q=d.data();
       const active=q.is_active!==false;
+      const enEsc=(q.quote_en||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const teEsc=(q.quote_te||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const srcEsc=(q.source||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       return `<div style="padding:12px 0;border-bottom:1px solid #f0eee8">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
           <div style="flex:1">
@@ -1173,6 +1206,7 @@ async function loadQuotes(){
             ${q.source?`<p style="font-size:10px;color:#888">— ${q.source.replace(/</g,'&lt;')}</p>`:''}
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="_setQuoteEditMode('${d.id}','${enEsc}','${teEsc}','${srcEsc}')" style="background:none;border:1px solid #2d5a2d;color:#2d5a2d;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:11px">Edit</button>
             <button onclick="toggleQuote('${d.id}',${!active})" style="background:none;border:1px solid ${active?'#e74c3c':'#2d5a2d'};color:${active?'#e74c3c':'#2d5a2d'};padding:3px 10px;border-radius:5px;cursor:pointer;font-size:11px">${active?'Hide':'Show'}</button>
             <button onclick="delQuote('${d.id}')" class="db">Delete</button>
           </div>
@@ -1186,24 +1220,36 @@ window.saveQuote = async()=>{
   if(!en){alert('English quote is required.');return;}
   const res=document.getElementById('qres');
   try{
-    await addDoc(collection(db,'quotes'),{
-      quote_en: en,
-      quote_te: document.getElementById('qt').value.trim(),
-      source:   document.getElementById('qs').value.trim(),
-      is_active: true,
-      created_at: serverTimestamp(),
-    });
-    document.getElementById('qe').value='';
-    document.getElementById('qt').value='';
-    document.getElementById('qs').value='';
-    res.style.display='block'; res.className='res ok';
-    res.textContent='✅ Quote added!';
+    if(_editingQuoteId){
+      await setDoc(doc(db,'quotes',_editingQuoteId),{
+        quote_en: en,
+        quote_te: document.getElementById('qt').value.trim(),
+        source:   document.getElementById('qs').value.trim(),
+      },{merge:true});
+      res.style.display='block'; res.className='res ok';
+      res.textContent='✅ Quote updated!';
+      _clearQuoteEditMode();
+    } else {
+      await addDoc(collection(db,'quotes'),{
+        quote_en: en,
+        quote_te: document.getElementById('qt').value.trim(),
+        source:   document.getElementById('qs').value.trim(),
+        is_active: true,
+        created_at: serverTimestamp(),
+      });
+      document.getElementById('qe').value='';
+      document.getElementById('qt').value='';
+      document.getElementById('qs').value='';
+      res.style.display='block'; res.className='res ok';
+      res.textContent='✅ Quote added!';
+    }
     loadQuotes();
   }catch(e){
     res.style.display='block'; res.className='res er';
     res.textContent='❌ '+e.message;
   }
 };
+window.cancelQuoteEdit=()=>{ _clearQuoteEditMode(); };
 window.toggleQuote = async(id,active)=>{
   await setDoc(doc(db,'quotes',id),{is_active:active},{merge:true});
   loadQuotes();
