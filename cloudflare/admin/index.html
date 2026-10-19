@@ -214,27 +214,8 @@
   <!-- HOME CARDS -->
   <div class="panel" id="panel-homecards">
     <div class="card">
-      <h3>📰 Magazines Card Image</h3>
-      <p style="font-size:12px;color:#888;margin-bottom:14px">Upload the banner image shown on the Magazines home screen card. Recommended: 800×400px JPG.</p>
-      <div class="row1">
-        <div>
-          <label>Cover Image</label>
-          <div class="dz" id="hc-mag-dz" onclick="document.getElementById('hc-mag-file').click()">
-            Drop image or <strong>browse</strong>
-          </div>
-          <input type="file" id="hc-mag-file" accept="image/*" style="display:none" onchange="previewHcMag(event)">
-          <img id="hc-mag-prev" class="prev" style="width:120px;height:70px;object-fit:cover">
-          <div class="sf" id="hc-mag-sf"></div>
-        </div>
-      </div>
-      <div class="pw" id="hc-mag-pw"><div class="pb"><div class="pf" id="hc-mag-pf"></div></div><div class="pl" id="hc-mag-pl"></div></div>
-      <button class="btn" id="hc-mag-btn" onclick="uploadHcMagImage()" disabled>⬆ Upload Magazine Card Image</button>
-      <div class="res" id="hc-mag-res"></div>
-      <div style="margin-top:10px;font-size:11px;color:#888">Current image path: <code>images/cards/magazines.jpg</code> on media.yctmedia.com</div>
-    </div>
-    <div class="card">
       <h3>🏠 Home Screen Cards</h3>
-      <p style="font-size:12px;color:#888;margin-bottom:16px">Control which cards appear on the home screen and their order. Changes take effect immediately on next app launch.</p>
+      <p style="font-size:12px;color:#888;margin-bottom:16px">Control which cards appear on the home screen, their order, and banner image. Paste the full image URL (e.g. from media.yctmedia.com) into the Image URL field. Changes take effect immediately on next app launch.</p>
       <div id="hclist"><p style="color:#888;font-size:12px">Loading...</p></div>
       <button class="btn" onclick="saveHomeCards()" style="margin-top:12px">💾 Save Home Cards</button>
       <div class="res" id="hcres"></div>
@@ -814,24 +795,32 @@ async function loadHomeCards(){
     const saved = snap.exists() ? (snap.data().cards||[]) : [];
     const cards = HC_DEFAULTS.map(def=>{
       const s=saved.find(c=>c.id===def.id)||{};
-      return {...def, visible: s.visible!==undefined?s.visible:true, sort_order: s.sort_order!==undefined?s.sort_order:HC_DEFAULTS.indexOf(def)};
+      return {...def, visible: s.visible!==undefined?s.visible:true, sort_order: s.sort_order!==undefined?s.sort_order:HC_DEFAULTS.indexOf(def), image_url: s.image_url||''};
     });
     cards.sort((a,b)=>a.sort_order-b.sort_order);
     el.innerHTML=cards.map((c,i)=>`
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0eee8">
-        <span style="font-size:22px">${c.icon}</span>
-        <div style="flex:1">
-          <strong style="font-size:13px">${c.label}</strong>
-          <p style="font-size:11px;color:#888;margin-top:2px">${c.desc}</p>
+      <div style="padding:12px 0;border-bottom:1px solid #f0eee8">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <span style="font-size:22px">${c.icon}</span>
+          <div style="flex:1">
+            <strong style="font-size:13px">${c.label}</strong>
+            <p style="font-size:11px;color:#888;margin-top:2px">${c.desc}</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:11px;color:#888">Order</label>
+            <input type="number" value="${c.sort_order+1}" min="1" max="10"
+              id="hc-order-${c.id}" style="width:50px;text-align:center;font-size:12px">
+            <label class="switch" title="${c.label} visible">
+              <input type="checkbox" ${c.visible?'checked':''} id="hc-vis-${c.id}">
+              <span class="slider"></span>
+            </label>
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <label style="font-size:11px;color:#888">Order</label>
-          <input type="number" value="${c.sort_order+1}" min="1" max="10"
-            id="hc-order-${c.id}" style="width:50px;text-align:center;font-size:12px">
-          <label class="switch" title="${c.label} visible">
-            <input type="checkbox" ${c.visible?'checked':''} id="hc-vis-${c.id}">
-            <span class="slider"></span>
-          </label>
+          <label style="font-size:10px;font-weight:600;color:#5f5e5a;white-space:nowrap;min-width:70px">IMAGE URL</label>
+          <input type="url" id="hc-img-${c.id}" value="${c.image_url||''}"
+            placeholder="https://media.yctmedia.com/images/cards/${c.id}.jpg"
+            style="flex:1;font-size:11px;color:#444">
         </div>
       </div>`).join('');
   }catch(e){
@@ -845,6 +834,7 @@ window.saveHomeCards = async()=>{
       id: def.id,
       visible: document.getElementById('hc-vis-'+def.id)?.checked ?? true,
       sort_order: (parseInt(document.getElementById('hc-order-'+def.id)?.value||'1')-1),
+      image_url: (document.getElementById('hc-img-'+def.id)?.value||'').trim(),
     }));
     await setDoc(doc(db,'settings','home_cards'),{cards, updated_at:serverTimestamp()});
     res.style.display='block'; res.className='res ok';
@@ -853,45 +843,6 @@ window.saveHomeCards = async()=>{
     res.style.display='block'; res.className='res er';
     res.textContent='❌ '+e.message;
   }
-};
-
-// ── HOME CARDS — Magazine image upload ────────────────────────────────────
-window.previewHcMag = (e) => {
-  const f = e.target.files[0]; if(!f) return;
-  const prev = document.getElementById('hc-mag-prev');
-  const sf   = document.getElementById('hc-mag-sf');
-  const btn  = document.getElementById('hc-mag-btn');
-  prev.src = URL.createObjectURL(f); prev.style.display='block';
-  sf.style.display='block'; sf.textContent = f.name;
-  btn.disabled = false;
-};
-window.uploadHcMagImage = async () => {
-  const file = document.getElementById('hc-mag-file').files[0];
-  if (!file) return;
-  const btn  = document.getElementById('hc-mag-btn');
-  const res  = document.getElementById('hc-mag-res');
-  const pw   = document.getElementById('hc-mag-pw');
-  const pf   = document.getElementById('hc-mag-pf');
-  const pl   = document.getElementById('hc-mag-pl');
-  btn.disabled=true; pw.style.display='block';
-  pl.textContent='Uploading…'; pf.style.width='10%';
-  try {
-    const formData = new FormData();
-    // Upload to images/cards/magazines.jpg on R2
-    formData.append('file', file, 'magazines.jpg');
-    formData.append('path', 'images/cards/magazines.jpg');
-    const token = await firebase.auth().currentUser?.getIdToken();
-    const r = await fetch(`${WK}/upload`, {
-      method:'POST', headers:{'Authorization':'Bearer '+token}, body:formData
-    });
-    pf.style.width='100%';
-    if (!r.ok) throw new Error(await r.text());
-    res.style.display='block'; res.className='res ok';
-    res.textContent='✅ Magazine card image uploaded! Restart app to see it.';
-  } catch(e) {
-    res.style.display='block'; res.className='res er';
-    res.textContent='❌ '+e.message;
-  } finally { btn.disabled=false; }
 };
 
 // ── PROGRAMS CRUD ─────────────────────────────────────────────────────────
