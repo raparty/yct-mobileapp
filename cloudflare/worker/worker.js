@@ -30,7 +30,7 @@ export default {
         await env.YCT_BUCKET.put(path, file.stream(), {
           httpMetadata: { contentType: file.type || 'application/octet-stream' }
         });
-        const url2 = `https://pub-360b7b3324fb4f22bb35e656f476062a.r2.dev/${path}`;
+        const url2 = `https://media.yctmedia.com/${path}`;
         return new Response(JSON.stringify({url: url2}), {headers:{'Content-Type':'application/json'}});
       } catch(e) {
         return new Response(JSON.stringify({error:e.message}), {status:500,headers:{'Content-Type':'application/json'}});

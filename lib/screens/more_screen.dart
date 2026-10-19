@@ -36,6 +36,20 @@ class _MoreScreenState extends State<MoreScreen> {
     if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  /// Opens YouTube — tries the native app first via youtube:// scheme,
+  /// falls back to the https URL in an external browser.
+  Future<void> _openYouTube(String url) async {
+    // Extract channel handle or video ID for native app deep link
+    final httpsUri = Uri.parse(url);
+    // Try native app scheme (youtube://www.youtube.com/...)
+    final nativeUri = httpsUri.replace(scheme: 'youtube');
+    if (await canLaunchUrl(nativeUri)) {
+      await launchUrl(nativeUri, mode: LaunchMode.externalApplication);
+    } else {
+      await launchUrl(httpsUri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,6 +105,17 @@ class _MoreScreenState extends State<MoreScreen> {
                   () => _open('mailto:${_contact.email}')),
                 _MenuItem(Icons.phone_outlined, 'Phone', _contact.phone,
                   () => _open('tel:${_contact.phone.replaceAll(' ', '').replaceAll('+', '+')}')),
+              ]),
+              const SizedBox(height: 20),
+              const Text('FOLLOW US', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: AppColors.textMid, letterSpacing: 0.5)),
+              const SizedBox(height: 8),
+              _MenuCard(items: [
+                _MenuItem(Icons.play_circle_outline, 'YouTube Channel',
+                  _contact.youtubeDescription.isEmpty
+                      ? 'Discourses, programmes & teachings'
+                      : _contact.youtubeDescription,
+                  () => _openYouTube(_contact.youtubeUrl)),
               ]),
               const SizedBox(height: 20),
               const Text('PUBLICATIONS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,

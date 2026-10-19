@@ -155,26 +155,34 @@ class ContactContent {
   final String whatsapp;
   final String email;
   final String phone;
+  final String youtubeUrl;
+  final String youtubeDescription;
 
   const ContactContent({
     required this.website,
     required this.whatsapp,
     required this.email,
     required this.phone,
+    required this.youtubeUrl,
+    required this.youtubeDescription,
   });
 
   factory ContactContent.fallback() => const ContactContent(
-    website:  'https://www.yogaconsciousness.org',
-    whatsapp: 'https://wa.me/919492448840',
-    email:    'info@yogaconsciousness.org',
-    phone:    '+91 89662 68923',
+    website:             'https://www.yogaconsciousness.org',
+    whatsapp:            'https://wa.me/919492448840',
+    email:               'info@yogaconsciousness.org',
+    phone:               '+91 89662 68923',
+    youtubeUrl:          'https://www.youtube.com/@YogaConsciousnessTrust',
+    youtubeDescription:  'Discourses, programmes & teachings',
   );
 
   factory ContactContent.fromFirestore(Map<String, dynamic> d) => ContactContent(
-    website:  d['website']  ?? ContactContent.fallback().website,
-    whatsapp: d['whatsapp'] ?? ContactContent.fallback().whatsapp,
-    email:    d['email']    ?? ContactContent.fallback().email,
-    phone:    d['phone']    ?? ContactContent.fallback().phone,
+    website:            d['website']             ?? ContactContent.fallback().website,
+    whatsapp:           d['whatsapp']            ?? ContactContent.fallback().whatsapp,
+    email:              d['email']               ?? ContactContent.fallback().email,
+    phone:              d['phone']               ?? ContactContent.fallback().phone,
+    youtubeUrl:         d['youtube_url']         ?? ContactContent.fallback().youtubeUrl,
+    youtubeDescription: d['youtube_description'] ?? ContactContent.fallback().youtubeDescription,
   );
 }
 

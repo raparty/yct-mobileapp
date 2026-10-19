@@ -36,6 +36,6 @@ class AppStrings {
 }
 
 class R2Config {
-  static const baseUrl = 'https://pub-360b7b3324fb4f22bb35e656f476062a.r2.dev';
+  static const baseUrl = 'https://media.yctmedia.com';
   static String url(String path) => '$baseUrl/$path';
 }

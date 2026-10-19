@@ -4,7 +4,7 @@ import '../core/constants.dart';
 import '../core/models.dart';
 import '../core/firestore_service.dart';
 import '../core/connectivity_service.dart';
-import '../core/remote_config_service.dart';
+
 import '../widgets/error_view.dart';
 import '../widgets/cover_image.dart';
 import 'magazine_archive_screen.dart';
@@ -26,12 +26,10 @@ class _LibraryScreenState extends State<LibraryScreen>
   String? _error;
   String  _search  = '';
 
-  bool get _pubEnabled => RemoteConfigService.publicationsEnabled;
-
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: _pubEnabled ? 2 : 1, vsync: this);
+    _tab = TabController(length: 2, vsync: this);
     _load();
   }
 
@@ -40,11 +38,11 @@ class _LibraryScreenState extends State<LibraryScreen>
     try {
       final results = await Future.wait([
         FirestoreService.fetchMagazines(),
-        if (_pubEnabled) FirestoreService.fetchBooks(),
+        FirestoreService.fetchBooks(),
       ]);
       if (mounted) setState(() {
         _magazines = results[0] as List<Magazine>;
-        if (_pubEnabled && results.length > 1) _books = results[1] as List<Book>;
+        _books     = results[1] as List<Book>;
         _loading = false;
       });
     } catch (e, stack) {
@@ -78,7 +76,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                 onPressed: _load)
             ],
             bottom: _loading || _error != null ? null : PreferredSize(
-              preferredSize: Size.fromHeight(_pubEnabled ? 100 : 56),
+              preferredSize: const Size.fromHeight(100),
               child: Column(children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16,0,16,8),
@@ -102,19 +100,18 @@ class _LibraryScreenState extends State<LibraryScreen>
                     ),
                   ),
                 ),
-                if (_pubEnabled)
-                  TabBar(
-                    controller: _tab,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textMid,
-                    indicatorColor: AppColors.primary,
-                    labelStyle: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 12),
-                    tabs: [
-                      Tab(text: 'Magazines (${_magazines.length})'),
-                      Tab(text: 'Books (${_books.length})'),
-                    ],
-                  ),
+                TabBar(
+                  controller: _tab,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textMid,
+                  indicatorColor: AppColors.primary,
+                  labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 12),
+                  tabs: [
+                    Tab(text: 'Magazines (${_magazines.length})'),
+                    Tab(text: 'Books (${_books.length})'),
+                  ],
+                ),
               ])),
           ),
         ],
@@ -122,12 +119,10 @@ class _LibraryScreenState extends State<LibraryScreen>
             ? const LoadingView(message: 'Loading publications...')
             : _error != null
                 ? ErrorView(message: _error!, onRetry: _load)
-                : _pubEnabled
-                    ? TabBarView(controller: _tab, children: [
-                        _MagTab(magazines: _magazines, search: _search),
-                        _BooksTab(books: _books, search: _search),
-                      ])
-                    : _MagTab(magazines: _magazines, search: _search),
+                : TabBarView(controller: _tab, children: [
+                    _MagTab(magazines: _magazines, search: _search),
+                    _BooksTab(books: _books, search: _search),
+                  ]),
       ),
     );
   }
