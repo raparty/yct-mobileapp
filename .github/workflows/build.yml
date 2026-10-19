@@ -206,6 +206,21 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@4
 
+      - name: Encode index.html into worker.js
+        working-directory: cloudflare/admin
+        run: |
+          python3 -c "
+import base64, re
+with open('index.html', 'rb') as f:
+    b64 = base64.b64encode(f.read()).decode()
+with open('worker.js', 'r') as f:
+    content = f.read()
+new_content = re.sub(r'(const HTML_B64 = \")[^\"]+(\";)', lambda m: m.group(1) + b64 + m.group(2), content)
+with open('worker.js', 'w') as f:
+    f.write(new_content)
+print('Encoded', len(b64), 'chars into worker.js')
+"
+
       - name: Deploy admin panel worker
         working-directory: cloudflare/admin
         run: npx wrangler deploy --name crimson-art-feea
