@@ -15,6 +15,7 @@ class _ProgramsScreenState extends State<ProgramsScreen>
   bool _loading = true;
   String? _error;
   late TabController _tabs;
+  String _search = '';
 
   @override
   void initState() {
@@ -39,11 +40,20 @@ class _ProgramsScreenState extends State<ProgramsScreen>
     }
   }
 
+  bool _matches(YearlyProgram p) {
+    if (_search.isEmpty) return true;
+    final q = _search.toLowerCase();
+    return p.title.toLowerCase().contains(q) ||
+        p.titleTelugu.contains(q) ||
+        p.location.toLowerCase().contains(q) ||
+        p.centerName.toLowerCase().contains(q);
+  }
+
   List<YearlyProgram> get _upcoming =>
-      _all.where((p) => p.isUpcoming).toList();
+      _all.where((p) => p.isUpcoming && _matches(p)).toList();
 
   List<YearlyProgram> get _past =>
-      _all.where((p) => !p.isUpcoming).toList().reversed.toList();
+      _all.where((p) => !p.isUpcoming && _matches(p)).toList().reversed.toList();
 
   @override
   Widget build(BuildContext context) {
@@ -52,16 +62,51 @@ class _ProgramsScreenState extends State<ProgramsScreen>
       appBar: AppBar(
         title: const Text('Programs'),
         backgroundColor: AppColors.primary,
-        bottom: TabBar(
-          controller: _tabs,
-          indicatorColor: AppColors.saffron,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          tabs: [
-            Tab(text: 'Upcoming (${_upcoming.length})'),
-            Tab(text: 'Past (${_past.length})'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(96),
+          child: Column(children: [
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: TextField(
+                onChanged: (v) => setState(() => _search = v),
+                style: const TextStyle(fontSize: 13, color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search by title or location...',
+                  hintStyle: const TextStyle(
+                      color: Colors.white54, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search,
+                      color: Colors.white54, size: 18),
+                  suffixIcon: _search.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close,
+                              color: Colors.white54, size: 18),
+                          onPressed: () => setState(() => _search = ''))
+                      : null,
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.15),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none),
+                ),
+              ),
+            ),
+            // Tabs
+            TabBar(
+              controller: _tabs,
+              indicatorColor: AppColors.saffron,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white60,
+              labelStyle: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600),
+              tabs: [
+                Tab(text: 'Upcoming (${_upcoming.length})'),
+                Tab(text: 'Past (${_past.length})'),
+              ],
+            ),
+          ]),
         ),
       ),
       body: _loading
@@ -76,11 +121,15 @@ class _ProgramsScreenState extends State<ProgramsScreen>
                     children: [
                       _ProgramList(
                         programs: _upcoming,
-                        emptyMessage: 'No upcoming programs.\nCheck back soon.',
+                        emptyMessage: _search.isNotEmpty
+                            ? 'No upcoming programs match "$_search".'
+                            : 'No upcoming programs.\nCheck back soon.',
                       ),
                       _ProgramList(
                         programs: _past,
-                        emptyMessage: 'No past programs yet.',
+                        emptyMessage: _search.isNotEmpty
+                            ? 'No past programs match "$_search".'
+                            : 'No past programs yet.',
                       ),
                     ],
                   ),

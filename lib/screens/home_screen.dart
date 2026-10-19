@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _onCardTap(BuildContext context, HomeCard card) {
     switch (card.id) {
       case 'publications':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => MagazineArchiveScreen()));
+        _switchTab(1); // Library tab (magazines + books)
         break;
       case 'gurudev':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const GurudevScreen()));

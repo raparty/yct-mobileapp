@@ -176,8 +176,10 @@ class _MagCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       border: Border.all(color: AppColors.border)),
     child: Column(children: [
-      Expanded(
-        flex: 5,
+      // Cover: fixed aspect ratio (magazine portrait ~0.72) so it never
+      // overflows regardless of grid tile height.
+      AspectRatio(
+        aspectRatio: 0.72,
         child: MagazineCover(
           imageUrl:      magazine.coverImageUrl,
           fallbackColor: magazine.coverColor,
@@ -185,21 +187,18 @@ class _MagCard extends StatelessWidget {
           year:          magazine.year,
           monthNumber:   magazine.month,
           borderRadius:  10)),
-      Expanded(
-        flex: 2,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(magazine.titleTelugu,
-                style: const TextStyle(fontSize: 11,
-                  fontWeight: FontWeight.w500, color: AppColors.textDark),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
-              Text('${magazine.pages} pages',
-                style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
-            ]))),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(magazine.titleTelugu,
+              style: const TextStyle(fontSize: 11,
+                fontWeight: FontWeight.w500, color: AppColors.textDark),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text('${magazine.pages} pages',
+              style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
+          ])),
     ]));
 }
