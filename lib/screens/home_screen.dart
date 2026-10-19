@@ -9,6 +9,7 @@ import '../core/connectivity_service.dart';
 import '../core/quotes_service.dart';
 import '../core/remote_config_service.dart';
 import '../core/home_cards_service.dart';
+import '../core/new_content_service.dart';
 import '../widgets/error_view.dart';
 import '../widgets/cover_image.dart';
 import 'magazine_archive_screen.dart';
@@ -47,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    _checkNewContent();
     _updateRemaining();
     _countdownTimer = Timer.periodic(
       const Duration(seconds: 1), (_) { if (mounted) _updateRemaining(); });
@@ -58,6 +60,87 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _remaining = _launchDate.isAfter(now)
           ? _launchDate.difference(now) : Duration.zero;
     });
+  }
+
+  Future<void> _checkNewContent() async {
+    // Small delay so the home screen paints first.
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    final result = await NewContentService.check();
+    if (!mounted || !result.hasNew) return;
+    _showNewContentDialog(result);
+  }
+
+  void _showNewContentDialog(NewContentResult result) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            // Bell icon
+            Container(
+              width: 56, height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.notifications_active_outlined,
+                  color: AppColors.primary, size: 28),
+            ),
+            const SizedBox(height: 16),
+            const Text('New Content Available',
+              style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700,
+                color: AppColors.textDark)),
+            const SizedBox(height: 8),
+            Text(
+              'We just uploaded ${result.message}.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13, color: AppColors.textMid, height: 1.5)),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.border),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Later',
+                    style: TextStyle(color: AppColors.textMid)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    // Navigate to the most relevant tab
+                    if (result.newAudioCount > 0) {
+                      _switchTab(2); // Audio tab
+                    } else {
+                      _switchTab(1); // Library / Magazines tab
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('View',
+                    style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
   }
 
   @override

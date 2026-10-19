@@ -327,7 +327,10 @@
       <div class="res" id="prog-res"></div>
     </div>
     <div class="card">
-      <h3>All Programs <span style="font-size:11px;font-weight:400;color:#888">(newest first)</span></h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">
+        <h3 style="margin-bottom:0">All Programs</h3>
+        <input id="prog-search" type="text" placeholder="🔍 Search by title, center…" oninput="filterPrograms()" style="flex:1;min-width:180px;max-width:280px;padding:6px 11px;border:1px solid #d3d1c7;border-radius:7px;font-size:12px">
+      </div>
       <div class="clist" id="prog-list"><p style="color:#888;font-size:12px">Loading...</p></div>
     </div>
   </div>
@@ -712,19 +715,30 @@ window.saveSettings = async()=>{
 const PROG_TYPES = { shibir:'Yoga Shibir', class:'Class', special:'Special Program', online:'Online' };
 const PROG_ICONS = { shibir:'🧘', class:'📚', special:'⭐', online:'💻' };
 
-async function loadPrograms() {
+// All programs cache for client-side search + grouping
+let _allPrograms = [];
+
+function renderPrograms(docs) {
   const el = document.getElementById('prog-list');
-  el.innerHTML = '<p style="color:#888;font-size:12px">Loading...</p>';
-  try {
-    const snap = await getDocs(collection(db, 'programs'));
-    let docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    docs.sort((a, b) => {
-      const ta = a.start_date ? a.start_date.toMillis() : 0;
-      const tb = b.start_date ? b.start_date.toMillis() : 0;
-      return tb - ta;
-    });
-    if (!docs.length) { el.innerHTML = '<p style="color:#888;font-size:12px">No programs yet. Add one above.</p>'; return; }
-    el.innerHTML = docs.map(d => {
+  if (!docs.length) { el.innerHTML = '<p style="color:#888;font-size:12px">No programs match.</p>'; return; }
+
+  // Group by center_name (fall back to "Other Centers")
+  const groups = {};
+  docs.forEach(d => {
+    const key = (d.center_name || '').trim() || 'Other Centers';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(d);
+  });
+  // Sort group keys alphabetically, but put "Other Centers" last
+  const keys = Object.keys(groups).sort((a, b) => {
+    if (a === 'Other Centers') return 1;
+    if (b === 'Other Centers') return -1;
+    return a.localeCompare(b);
+  });
+
+  el.innerHTML = keys.map(center => {
+    const items = groups[center];
+    const rows = items.map(d => {
       const sd = d.start_date ? d.start_date.toDate() : null;
       const ed = d.end_date   ? d.end_date.toDate()   : null;
       const dateStr = sd ? sd.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : 'No date';
@@ -734,7 +748,7 @@ async function loadPrograms() {
         <div class="cp" style="font-size:18px">${PROG_ICONS[d.type] || '📅'}</div>
         <div class="inf">
           <strong>${d.title || '(no title)'}</strong>
-          <span>${PROG_TYPES[d.type] || d.type} · ${dateStr}${dateEnd} · ${d.center_name || d.location || ''}</span>
+          <span>${PROG_TYPES[d.type] || d.type} · ${dateStr}${dateEnd}</span>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
           <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;background:${pub ? '#e8f5e8' : '#f5f3ee'};color:${pub ? '#2d5a2d' : '#888'}">${pub ? 'Live' : 'Hidden'}</span>
@@ -744,6 +758,42 @@ async function loadPrograms() {
         </div>
       </div>`;
     }).join('');
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:#2d5a2d;text-transform:uppercase;letter-spacing:.7px;padding:5px 4px 6px;border-bottom:2px solid #e8f5e8;margin-bottom:6px">
+        📍 ${center} <span style="font-weight:400;color:#888;font-size:10px">(${items.length})</span>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+window.filterPrograms = () => {
+  const q = (document.getElementById('prog-search').value || '').toLowerCase().trim();
+  if (!q) { renderPrograms(_allPrograms); return; }
+  const filtered = _allPrograms.filter(d =>
+    (d.title || '').toLowerCase().includes(q) ||
+    (d.title_telugu || '').toLowerCase().includes(q) ||
+    (d.center_name || '').toLowerCase().includes(q) ||
+    (d.location || '').toLowerCase().includes(q) ||
+    (d.description || '').toLowerCase().includes(q)
+  );
+  renderPrograms(filtered);
+};
+
+async function loadPrograms() {
+  const el = document.getElementById('prog-list');
+  el.innerHTML = '<p style="color:#888;font-size:12px">Loading...</p>';
+  try {
+    const snap = await getDocs(collection(db, 'programs'));
+    _allPrograms = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _allPrograms.sort((a, b) => {
+      const ta = a.start_date ? a.start_date.toMillis() : 0;
+      const tb = b.start_date ? b.start_date.toMillis() : 0;
+      return tb - ta;
+    });
+    if (!_allPrograms.length) { el.innerHTML = '<p style="color:#888;font-size:12px">No programs yet. Add one above.</p>'; return; }
+    // Respect active search query after reload
+    filterPrograms();
   } catch(e) { el.innerHTML = `<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`; }
 }
 
@@ -861,26 +911,46 @@ async function loadFeedback() {
       return tb - ta;
     });
     const unreadCount = docs.filter(d => !d.read).length;
-    countEl.textContent = docs.length + ' total · ' + unreadCount + ' unread';
+    const repliedCount = docs.filter(d => d.reply).length;
+    countEl.textContent = docs.length + ' total · ' + unreadCount + ' unread · ' + repliedCount + ' replied';
     if (filter === 'unread') docs = docs.filter(d => !d.read);
     if (!docs.length) { el.innerHTML = '<p style="color:#888;font-size:12px">No feedback yet.</p>'; return; }
     el.innerHTML = docs.map(d => {
       const ts = d.submitted_at ? d.submitted_at.toDate().toLocaleString('en-IN') : '';
       const isRead = d.read === true;
+      const hasReply = d.reply && d.reply.trim().length > 0;
+      const repliedAt = hasReply && d.replied_at ? d.replied_at.toDate().toLocaleString('en-IN') : '';
+      const repliedBy = hasReply && d.replied_by ? d.replied_by : '';
+
+      // Reply block: show existing reply or the compose area
+      const replySection = hasReply
+        ? `<div style="margin-top:10px;background:#e8f5e8;border:1px solid #b8d8b8;border-radius:7px;padding:10px 12px">
+            <div style="font-size:10px;font-weight:700;color:#2d5a2d;margin-bottom:4px">✅ REPLIED ${repliedAt ? '· ' + repliedAt : ''} ${repliedBy ? '· ' + repliedBy : ''}</div>
+            <div style="font-size:12px;color:#2c2c2a;line-height:1.5;white-space:pre-wrap">${d.reply.replace(/</g,'&lt;')}</div>
+            <button onclick="startEditReply('${d.id}')" style="margin-top:6px;background:none;border:1px solid #2d5a2d;color:#2d5a2d;border-radius:5px;padding:3px 10px;cursor:pointer;font-size:11px">✏️ Edit reply</button>
+          </div>`
+        : `<div style="margin-top:10px" id="reply-compose-${d.id}">
+            <textarea id="reply-text-${d.id}" rows="2" placeholder="Type your reply to this devotee…" style="width:100%;padding:7px 10px;border:1px solid #d3d1c7;border-radius:7px;font-size:12px;resize:vertical"></textarea>
+            <button onclick="saveReply('${d.id}')" style="margin-top:5px;background:#2d5a2d;color:white;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600">📨 Send Reply</button>
+            <span id="reply-status-${d.id}" style="font-size:11px;color:#888;margin-left:8px"></span>
+          </div>`;
+
       return `<div style="border:1px solid ${isRead ? '#d3d1c7' : '#2d5a2d'};border-radius:10px;padding:13px 14px;margin-bottom:8px;background:${isRead ? 'white' : '#f0f8f0'}">
         <div style="display:flex;align-items:flex-start;gap:10px">
-          <div style="flex:1">
+          <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
               ${!isRead ? '<span style="font-size:9px;background:#2d5a2d;color:white;padding:2px 7px;border-radius:8px;font-weight:600">NEW</span>' : ''}
+              ${hasReply ? '<span style="font-size:9px;background:#185fa5;color:white;padding:2px 7px;border-radius:8px;font-weight:600">REPLIED</span>' : ''}
               <span style="font-size:11px;background:#f0f4f0;border-radius:6px;padding:2px 8px;color:#5f5e5a">${d.category || 'General'}</span>
               <span style="font-size:12px;font-weight:600;color:#2c2c2a">${d.name || 'Anonymous'}</span>
               ${d.phone ? '<span style="font-size:11px;color:#888">📞 ' + d.phone + '</span>' : ''}
               <span style="font-size:10px;color:#b4b2a9;margin-left:auto">${ts}</span>
             </div>
             <div style="font-size:13px;color:#2c2c2a;line-height:1.5;white-space:pre-wrap">${(d.message || '').replace(/</g,'&lt;')}</div>
+            ${replySection}
           </div>
           <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-            ${!isRead ? '<button onclick="markRead(\'' + d.id + '\')" style="background:#2d5a2d;color:white;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap">✓ Mark read</button>' : ''}
+            ${!isRead ? '<button onclick="markRead(\'' + d.id + '\')" style="background:#2d5a2d;color:white;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap">✓ Acknowledge</button>' : ''}
             <button onclick="delFeedback(\'' + d.id + '\')" class="db">🗑</button>
           </div>
         </div>
@@ -892,6 +962,50 @@ async function loadFeedback() {
 window.markRead = async (id) => {
   await setDoc(doc(db, 'feedback', id), { read: true }, { merge: true });
   loadFeedback();
+};
+
+window.saveReply = async (id) => {
+  const text = (document.getElementById('reply-text-' + id) || {}).value || '';
+  if (!text.trim()) { alert('Please type a reply first.'); return; }
+  const statusEl = document.getElementById('reply-status-' + id);
+  if (statusEl) statusEl.textContent = 'Saving…';
+  try {
+    await setDoc(doc(db, 'feedback', id), {
+      reply:      text.trim(),
+      replied_at: serverTimestamp(),
+      replied_by: auth.currentUser ? auth.currentUser.email : '',
+      read:       true,
+    }, { merge: true });
+    loadFeedback();
+  } catch(e) {
+    if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+  }
+};
+
+// Allow editing an existing reply — swaps the green block for a textarea pre-filled
+window.startEditReply = (id) => {
+  // Find the green reply block and replace it inline
+  const card = document.querySelector(`[id^="prog-row-${id}"]`) || (() => {
+    // traverse by searching reply block sibling
+    const allCards = document.querySelectorAll('#fb-list > div');
+    for (const c of allCards) {
+      if (c.innerHTML.includes(`saveReply('${id}')`) || c.innerHTML.includes(`startEditReply('${id}')`)) return c;
+    }
+    return null;
+  })();
+  // Reload — simplest approach is to just reload the list; the compose textarea will show
+  // Actually: just reload fresh (the reply is saved so it shows the edit button;
+  // for simplicity we temporarily hide the reply block and show a compose area)
+  const replyBlock = document.querySelector(`[onclick="startEditReply('${id}')"]`);
+  if (!replyBlock) return loadFeedback();
+  const replyContainer = replyBlock.closest('div[style*="e8f5e8"]');
+  if (!replyContainer) return loadFeedback();
+  replyContainer.innerHTML = `
+    <div style="font-size:10px;font-weight:700;color:#2d5a2d;margin-bottom:4px">✏️ Edit reply</div>
+    <textarea id="reply-text-${id}" rows="2" style="width:100%;padding:7px 10px;border:1px solid #d3d1c7;border-radius:7px;font-size:12px;resize:vertical"></textarea>
+    <button onclick="saveReply('${id}')" style="margin-top:5px;background:#2d5a2d;color:white;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600">💾 Update Reply</button>
+    <button onclick="loadFeedback()" style="margin-top:5px;margin-left:6px;background:none;border:1px solid #d3d1c7;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px">Cancel</button>
+    <span id="reply-status-${id}" style="font-size:11px;color:#888;margin-left:8px"></span>`;
 };
 
 window.delFeedback = async (id) => {

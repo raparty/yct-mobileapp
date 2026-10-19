@@ -1,7 +1,7 @@
 name: yct_app
 description: Yoga Consciousness Trust — Official App
 publish_to: 'none'
-version: 1.9.0+36
+version: 2.0.0+37
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -25,6 +25,7 @@ dependencies:
   audio_session: ^0.1.21
 
   # Utilities
+  shared_preferences: ^2.3.2
   url_launcher: ^6.2.5
   cupertino_icons: ^1.0.6
   connectivity_plus: ^6.0.3
