@@ -105,6 +105,7 @@
     <div class="tab" onclick="st('settings')">⚙️ Settings</div>
     <div class="tab" onclick="st('programs')">📅 Programs</div>
     <div class="tab" onclick="st('feedback')">💬 Feedback</div>
+    <div class="tab" onclick="st('quotes')">🪷 Quotes</div>
   </div>
 
   <!-- MAGAZINE -->
@@ -373,11 +374,30 @@
     </div>
   </div>
 
+  <!-- QUOTES -->
+  <div class="panel" id="panel-quotes">
+    <div class="card">
+      <h3>🪷 Daily Quotes</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:16px">Add inspirational quotes from Gurudev. The app shows one quote per day, cycling through all active quotes.</p>
+      <div class="row">
+        <div><label>Quote (English) *</label><textarea id="qe" rows="3" placeholder="Enter the quote in English…"></textarea></div>
+        <div><label>Quote (Telugu)</label><textarea id="qt" rows="3" placeholder="తెలుగులో నమోదు చేయండి (ఐచ్ఛికం)"></textarea></div>
+      </div>
+      <div class="row row1"><div><label>Source / Attribution</label><input id="qs" placeholder="e.g. Yogacharya Sri Raparthi Rama Rao — Yoga Chaitanya Prabha, Jan 2020"></div></div>
+      <button class="btn" onclick="saveQuote()">➕ Add Quote</button>
+      <div class="res" id="qres"></div>
+    </div>
+    <div class="card">
+      <h3>All Quotes</h3>
+      <div id="qlist"><p style="color:#888;font-size:12px">Loading...</p></div>
+    </div>
+  </div>
+
 </div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, Timestamp }
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, query, orderBy, where }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -414,9 +434,14 @@ window.doLogin = async () => {
 window.doLogout = () => signOut(auth);
 
 window.st = n => {
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['magazine','audio','book','homecards','toggles','settings','programs','feedback'][i]===n));
+  // Mark active tab by matching the onclick value — order-independent
+  document.querySelectorAll('.tab').forEach(t => {
+    const m = (t.getAttribute('onclick')||'').match(/st\('(\w+)'\)/);
+    t.classList.toggle('active', m && m[1] === n);
+  });
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('panel-'+n).classList.add('active');
+  const panel = document.getElementById('panel-'+n);
+  if (panel) panel.classList.add('active');
 };
 
 window.ut = () => {};
@@ -534,7 +559,7 @@ window.saveDailyQuote = () => {
 };
 
 // ── LOAD LISTS ───────────────────────────────────────────────────────────
-function loadAll(){ loadMags(); loadAudio2(); loadBooks(); loadPrograms(); loadFeedback(); loadHomeCards(); }
+function loadAll(){ loadMags(); loadAudio2(); loadBooks(); loadPrograms(); loadFeedback(); loadHomeCards(); loadQuotes(); }
 
 async function loadMags(){
   const el=document.getElementById('mlist');
@@ -1112,6 +1137,65 @@ window.delFeedback = async (id) => {
   if (!confirm('Delete this feedback?')) return;
   await deleteDoc(doc(db, 'feedback', id));
   loadFeedback();
+};
+
+// ── QUOTES ────────────────────────────────────────────────────────────────
+async function loadQuotes(){
+  const el=document.getElementById('qlist');
+  if(!el) return;
+  try{
+    const snap=await getDocs(query(collection(db,'quotes'),orderBy('created_at','desc')));
+    if(snap.empty){el.innerHTML='<p style="color:#888;font-size:12px">No quotes yet.</p>';return;}
+    el.innerHTML=snap.docs.map(d=>{
+      const q=d.data();
+      const active=q.is_active!==false;
+      return `<div style="padding:12px 0;border-bottom:1px solid #f0eee8">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <div style="flex:1">
+            <p style="font-size:13px;color:#2c2c2a;line-height:1.6;margin-bottom:4px">"${(q.quote_en||'').replace(/</g,'&lt;')}"</p>
+            ${q.quote_te?`<p style="font-size:12px;color:#5f5e5a;margin-bottom:4px">"${q.quote_te.replace(/</g,'&lt;')}"</p>`:''}
+            ${q.source?`<p style="font-size:10px;color:#888">— ${q.source.replace(/</g,'&lt;')}</p>`:''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="toggleQuote('${d.id}',${!active})" style="background:none;border:1px solid ${active?'#e74c3c':'#2d5a2d'};color:${active?'#e74c3c':'#2d5a2d'};padding:3px 10px;border-radius:5px;cursor:pointer;font-size:11px">${active?'Hide':'Show'}</button>
+            <button onclick="delQuote('${d.id}')" class="db">Delete</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML=`<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`;}
+}
+window.saveQuote = async()=>{
+  const en=document.getElementById('qe').value.trim();
+  if(!en){alert('English quote is required.');return;}
+  const res=document.getElementById('qres');
+  try{
+    await addDoc(collection(db,'quotes'),{
+      quote_en: en,
+      quote_te: document.getElementById('qt').value.trim(),
+      source:   document.getElementById('qs').value.trim(),
+      is_active: true,
+      created_at: serverTimestamp(),
+    });
+    document.getElementById('qe').value='';
+    document.getElementById('qt').value='';
+    document.getElementById('qs').value='';
+    res.style.display='block'; res.className='res ok';
+    res.textContent='✅ Quote added!';
+    loadQuotes();
+  }catch(e){
+    res.style.display='block'; res.className='res er';
+    res.textContent='❌ '+e.message;
+  }
+};
+window.toggleQuote = async(id,active)=>{
+  await setDoc(doc(db,'quotes',id),{is_active:active},{merge:true});
+  loadQuotes();
+};
+window.delQuote = async(id)=>{
+  if(!confirm('Delete this quote?')) return;
+  await deleteDoc(doc(db,'quotes',id));
+  loadQuotes();
 };
 
 // ── SHARED HELPER ─────────────────────────────────────────────────────────
