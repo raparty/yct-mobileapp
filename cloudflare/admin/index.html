@@ -213,12 +213,14 @@
 
   <!-- HOME CARDS -->
   <div class="panel" id="panel-homecards">
-    <div class="card">
-      <h3>🏠 Home Screen Cards</h3>
-      <p style="font-size:12px;color:#888;margin-bottom:16px">Control which cards appear on the home screen, their order, and banner image. Paste the full image URL (e.g. from media.yctmedia.com) into the Image URL field. Changes take effect immediately on next app launch.</p>
-      <div id="hclist"><p style="color:#888;font-size:12px">Loading...</p></div>
-      <button class="btn" onclick="saveHomeCards()" style="margin-top:12px">💾 Save Home Cards</button>
-      <div class="res" id="hcres"></div>
+    <h2 style="font-size:15px;font-weight:600;color:#2d5a2d;margin-bottom:4px">Home Screen Cards</h2>
+    <p style="font-size:12px;color:#888;margin-bottom:16px">Update images and text for each home screen card. Changes go live instantly in the app — no update needed.</p>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="hclist"><p style="color:#888;font-size:12px;padding:18px">Loading...</p></div>
+      <div style="padding:14px 18px;border-top:1px solid #f0eee8;display:flex;gap:10px;align-items:center">
+        <button class="btn" onclick="saveHomeCards()" style="width:auto;padding:9px 22px">💾 Save Home Cards</button>
+        <div class="res" id="hcres" style="margin:0"></div>
+      </div>
     </div>
   </div>
 
@@ -795,32 +797,35 @@ async function loadHomeCards(){
     const saved = snap.exists() ? (snap.data().cards||[]) : [];
     const cards = HC_DEFAULTS.map(def=>{
       const s=saved.find(c=>c.id===def.id)||{};
-      return {...def, visible: s.visible!==undefined?s.visible:true, sort_order: s.sort_order!==undefined?s.sort_order:HC_DEFAULTS.indexOf(def), image_url: s.image_url||''};
+      return {...def, visible: s.visible!==undefined?s.visible:true, sort_order: s.sort_order!==undefined?s.sort_order:HC_DEFAULTS.indexOf(def), image_url: s.image_url||'', title: s.title||def.label, subtitle: s.subtitle||''};
     });
     cards.sort((a,b)=>a.sort_order-b.sort_order);
     el.innerHTML=cards.map((c,i)=>`
-      <div style="padding:12px 0;border-bottom:1px solid #f0eee8">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-          <span style="font-size:22px">${c.icon}</span>
-          <div style="flex:1">
-            <strong style="font-size:13px">${c.label}</strong>
-            <p style="font-size:11px;color:#888;margin-top:2px">${c.desc}</p>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:11px;color:#888">Order</label>
-            <input type="number" value="${c.sort_order+1}" min="1" max="10"
-              id="hc-order-${c.id}" style="width:50px;text-align:center;font-size:12px">
-            <label class="switch" title="${c.label} visible">
-              <input type="checkbox" ${c.visible?'checked':''} id="hc-vis-${c.id}">
-              <span class="slider"></span>
-            </label>
-          </div>
+      <div style="padding:18px;border-bottom:1px solid #f0eee8">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <strong style="font-size:14px;color:#2c2c2a">${c.label}</strong>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:${c.visible?'#2d5a2d':'#888'}">
+            <input type="checkbox" ${c.visible?'checked':''} id="hc-vis-${c.id}"
+              onchange="this.closest('label').style.color=this.checked?'#2d5a2d':'#888';this.closest('label').lastChild.textContent=this.checked?' ENABLED':' DISABLED'"
+              style="width:14px;height:14px;accent-color:#2d5a2d">
+            ${c.visible?' ENABLED':' DISABLED'}
+          </label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <label style="font-size:10px;font-weight:600;color:#5f5e5a;white-space:nowrap;min-width:70px">IMAGE URL</label>
-          <input type="url" id="hc-img-${c.id}" value="${c.image_url||''}"
+        <div style="margin-bottom:10px">
+          <label style="font-size:10px;font-weight:600;color:#5f5e5a;text-transform:uppercase;display:block;margin-bottom:4px">Title</label>
+          <input id="hc-title-${c.id}" value="${(c.title||c.label).replace(/"/g,'&quot;')}"
+            placeholder="${c.label}" style="width:100%;font-size:13px">
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:10px;font-weight:600;color:#5f5e5a;text-transform:uppercase;display:block;margin-bottom:4px">Subtitle</label>
+          <input id="hc-sub-${c.id}" value="${(c.subtitle||'').replace(/"/g,'&quot;')}"
+            placeholder="Optional subtitle" style="width:100%;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:600;color:#5f5e5a;text-transform:uppercase;display:block;margin-bottom:4px">Image URL</label>
+          <input type="url" id="hc-img-${c.id}" value="${(c.image_url||'').replace(/"/g,'&quot;')}"
             placeholder="https://media.yctmedia.com/images/cards/${c.id}.jpg"
-            style="flex:1;font-size:11px;color:#444">
+            style="width:100%;font-size:13px">
         </div>
       </div>`).join('');
   }catch(e){
@@ -830,10 +835,12 @@ async function loadHomeCards(){
 window.saveHomeCards = async()=>{
   const res=document.getElementById('hcres');
   try{
-    const cards=HC_DEFAULTS.map(def=>({
+    const cards=HC_DEFAULTS.map((def,i)=>({
       id: def.id,
       visible: document.getElementById('hc-vis-'+def.id)?.checked ?? true,
-      sort_order: (parseInt(document.getElementById('hc-order-'+def.id)?.value||'1')-1),
+      sort_order: i,
+      title: (document.getElementById('hc-title-'+def.id)?.value||def.label).trim(),
+      subtitle: (document.getElementById('hc-sub-'+def.id)?.value||'').trim(),
       image_url: (document.getElementById('hc-img-'+def.id)?.value||'').trim(),
     }));
     await setDoc(doc(db,'settings','home_cards'),{cards, updated_at:serverTimestamp()});
