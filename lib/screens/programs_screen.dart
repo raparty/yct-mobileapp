@@ -9,13 +9,15 @@ class ProgramsScreen extends StatefulWidget {
   State<ProgramsScreen> createState() => _ProgramsScreenState();
 }
 
+const _kCenters = ['All', 'Vijinigiri', 'Bhimili', 'Kanavaram', 'Kondapur', 'Nandyal'];
+
 class _ProgramsScreenState extends State<ProgramsScreen>
     with SingleTickerProviderStateMixin {
   List<YearlyProgram> _all = [];
   bool _loading = true;
   String? _error;
   late TabController _tabs;
-  String _search = '';
+  String _selectedCenter = 'All';
 
   @override
   void initState() {
@@ -40,20 +42,17 @@ class _ProgramsScreenState extends State<ProgramsScreen>
     }
   }
 
-  bool _matches(YearlyProgram p) {
-    if (_search.isEmpty) return true;
-    final q = _search.toLowerCase();
-    return p.title.toLowerCase().contains(q) ||
-        p.titleTelugu.contains(q) ||
-        p.location.toLowerCase().contains(q) ||
-        p.centerName.toLowerCase().contains(q);
+  bool _matchesCenter(YearlyProgram p) {
+    if (_selectedCenter == 'All') return true;
+    return p.centerName.toLowerCase().contains(_selectedCenter.toLowerCase()) ||
+        p.location.toLowerCase().contains(_selectedCenter.toLowerCase());
   }
 
   List<YearlyProgram> get _upcoming =>
-      _all.where((p) => p.isUpcoming && _matches(p)).toList();
+      _all.where((p) => p.isUpcoming && _matchesCenter(p)).toList();
 
   List<YearlyProgram> get _past =>
-      _all.where((p) => !p.isUpcoming && _matches(p)).toList().reversed.toList();
+      _all.where((p) => !p.isUpcoming && _matchesCenter(p)).toList().reversed.toList();
 
   @override
   Widget build(BuildContext context) {
@@ -63,34 +62,50 @@ class _ProgramsScreenState extends State<ProgramsScreen>
         title: const Text('Programs'),
         backgroundColor: AppColors.primary,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(96),
+          preferredSize: const Size.fromHeight(88),
           child: Column(children: [
-            // Search bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: TextField(
-                onChanged: (v) => setState(() => _search = v),
-                style: const TextStyle(fontSize: 13, color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search by title or location...',
-                  hintStyle: const TextStyle(
-                      color: Colors.white54, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search,
-                      color: Colors.white54, size: 18),
-                  suffixIcon: _search.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close,
-                              color: Colors.white54, size: 18),
-                          onPressed: () => setState(() => _search = ''))
-                      : null,
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.15),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none),
-                ),
+            // Center filter chips
+            SizedBox(
+              height: 44,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: _kCenters.length,
+                itemBuilder: (_, i) {
+                  final center = _kCenters[i];
+                  final selected = center == _selectedCenter;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedCenter = center),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.3),
+                            width: 1),
+                        ),
+                        child: Text(center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: selected
+                                ? AppColors.primary
+                                : Colors.white)),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             // Tabs
@@ -121,14 +136,14 @@ class _ProgramsScreenState extends State<ProgramsScreen>
                     children: [
                       _ProgramList(
                         programs: _upcoming,
-                        emptyMessage: _search.isNotEmpty
-                            ? 'No upcoming programs match "$_search".'
+                        emptyMessage: _selectedCenter != 'All'
+                            ? 'No upcoming programs at $_selectedCenter.'
                             : 'No upcoming programs.\nCheck back soon.',
                       ),
                       _ProgramList(
                         programs: _past,
-                        emptyMessage: _search.isNotEmpty
-                            ? 'No past programs match "$_search".'
+                        emptyMessage: _selectedCenter != 'All'
+                            ? 'No past programs at $_selectedCenter.'
                             : 'No past programs yet.',
                       ),
                     ],

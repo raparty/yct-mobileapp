@@ -15,6 +15,7 @@ import 'magazine_archive_screen.dart';
 import 'issue_detail_screen.dart';
 import 'gurudev_screen.dart';
 import 'programs_screen.dart';
+import 'books_screen.dart';
 
 typedef TabSwitcher = void Function(int index);
 
@@ -103,16 +104,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _onCardTap(BuildContext context, HomeCard card) {
     switch (card.id) {
       case 'publications':
-        _switchTab(1); // Library tab (magazines + books)
+        // Publications = Books & Booklets screen
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const BooksScreen()));
+        break;
+      case 'magazines':
+        // Magazines = full archive
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => MagazineArchiveScreen()));
         break;
       case 'gurudev':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const GurudevScreen()));
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const GurudevScreen()));
         break;
       case 'programs':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgramsScreen()));
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const ProgramsScreen()));
         break;
       case 'centers':
-        _switchTab(4); // Centers is tab index 4
+        _switchTab(4); // Centers tab index
         break;
     }
   }
@@ -227,16 +237,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _cardGrid(BuildContext context) {
     final cards = _cards.isEmpty ? HomeCardsService.defaults() : _cards;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, childAspectRatio: 0.88,
-        crossAxisSpacing: 10, mainAxisSpacing: 10),
-      itemCount: cards.length,
-      itemBuilder: (ctx, i) => _PhotoCard(
-        card: cards[i], onTap: () => _onCardTap(ctx, cards[i])),
-    );
+    // Layout: pairs of cards, last card full-width if count is odd
+    final rows = <Widget>[];
+    for (int i = 0; i < cards.length; i += 2) {
+      final isLast = i + 1 >= cards.length;
+      rows.add(isLast
+          // Last odd card: full-width, shorter height
+          ? SizedBox(
+              height: 110,
+              child: _PhotoCard(
+                card: cards[i],
+                onTap: () => _onCardTap(context, cards[i])))
+          // Pair of cards at fixed height
+          : SizedBox(
+              height: 150,
+              child: Row(children: [
+                Expanded(child: _PhotoCard(
+                  card: cards[i],
+                  onTap: () => _onCardTap(context, cards[i]))),
+                const SizedBox(width: 10),
+                Expanded(child: _PhotoCard(
+                  card: cards[i + 1],
+                  onTap: () => _onCardTap(context, cards[i + 1]))),
+              ])));
+      if (i + 2 < cards.length) rows.add(const SizedBox(height: 10));
+    }
+    return Column(children: rows);
   }
 
   Widget _latestMags() => _magazines.isEmpty
@@ -459,8 +485,9 @@ class _PhotoCard extends StatelessWidget {
   const _PhotoCard({required this.card, required this.onTap});
 
   static const _fallbacks = {
-    'publications': [Color(0xFF1B4D1B), Color(0xFF2D7A2D)],
     'gurudev':      [Color(0xFF0A1F3A), Color(0xFF1A3A5A)],
+    'publications': [Color(0xFF1B4D1B), Color(0xFF2D7A2D)],
+    'magazines':    [Color(0xFF3D1A00), Color(0xFF7A3800)],
     'programs':     [Color(0xFF6B3205), Color(0xFF9A5010)],
     'centers':      [Color(0xFF1F0A40), Color(0xFF3A1870)],
   };

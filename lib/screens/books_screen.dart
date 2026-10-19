@@ -1,0 +1,202 @@
+// ─────────────────────────────────────────
+// YCT — Books Screen
+// Standalone screen for Publications card on home.
+// Shows all published books in a searchable grid.
+// ─────────────────────────────────────────
+import 'package:flutter/material.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import '../core/constants.dart';
+import '../core/models.dart';
+import '../core/firestore_service.dart';
+import '../core/connectivity_service.dart';
+import '../widgets/cover_image.dart';
+import '../widgets/error_view.dart';
+import 'book_detail_screen.dart';
+
+class BooksScreen extends StatefulWidget {
+  const BooksScreen({super.key});
+  @override
+  State<BooksScreen> createState() => _BooksScreenState();
+}
+
+class _BooksScreenState extends State<BooksScreen> {
+  List<Book> _books = [];
+  bool _loading = true;
+  String? _error;
+  String _search = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final books = await FirestoreService.fetchBooks();
+      if (mounted) setState(() { _books = books; _loading = false; });
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack, fatal: false);
+      if (mounted) setState(() {
+        _error = ConnectivityService.friendlyError(e);
+        _loading = false;
+      });
+    }
+  }
+
+  List<Book> get _filtered {
+    if (_search.isEmpty) return _books;
+    final q = _search.toLowerCase();
+    return _books.where((b) =>
+        b.title.toLowerCase().contains(q) ||
+        b.titleTelugu.contains(q) ||
+        b.language.toLowerCase().contains(q)).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Publications'),
+        backgroundColor: AppColors.primary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _load),
+        ],
+      ),
+      body: _loading
+          ? const LoadingView(message: 'Loading books...')
+          : _error != null
+              ? ErrorView(message: _error!, onRetry: _load)
+              : Column(children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: TextField(
+                      onChanged: (v) => setState(() => _search = v),
+                      decoration: InputDecoration(
+                        hintText: 'Search books...',
+                        hintStyle: const TextStyle(
+                            color: AppColors.textMuted, fontSize: 13),
+                        prefixIcon: const Icon(Icons.search,
+                            color: AppColors.textMuted, size: 20),
+                        suffixIcon: _search.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close,
+                                    color: AppColors.textMuted, size: 18),
+                                onPressed: () =>
+                                    setState(() => _search = ''))
+                            : null,
+                        filled: true, fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: AppColors.border)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: AppColors.border)),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: AppColors.primary, width: 1.5)),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 4),
+                    child: Row(children: [
+                      Text('${_filtered.length} title${_filtered.length == 1 ? '' : 's'}',
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textMid,
+                            fontWeight: FontWeight.w500)),
+                    ])),
+                  Expanded(child: _books.isEmpty
+                      ? EmptyView(
+                          icon: Icons.book_outlined,
+                          title: 'No books uploaded yet',
+                          subtitle: 'Publications will appear here once\nuploaded via the admin panel.',
+                          action: TextButton.icon(
+                            onPressed: _load,
+                            icon: const Icon(Icons.refresh,
+                                color: AppColors.primary, size: 16),
+                            label: const Text('Refresh',
+                                style: TextStyle(color: AppColors.primary))))
+                      : _filtered.isEmpty
+                          ? EmptyView(
+                              icon: Icons.search_off,
+                              title: 'No results for "$_search"',
+                              subtitle: 'Try a different search term.')
+                          : GridView.builder(
+                              padding: const EdgeInsets.fromLTRB(
+                                  16, 4, 16, 80),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 0.65,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10),
+                              itemCount: _filtered.length,
+                              itemBuilder: (ctx, i) {
+                                final book = _filtered[i];
+                                return GestureDetector(
+                                  onTap: () => Navigator.push(ctx,
+                                    MaterialPageRoute(builder: (_) =>
+                                      BookDetailScreen(book: book))),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: AppColors.border),
+                                      boxShadow: [BoxShadow(
+                                        color: Colors.black
+                                            .withOpacity(0.04),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2))]),
+                                    child: Column(children: [
+                                      Expanded(child: BookCover(
+                                        imageUrl:      book.coverImageUrl,
+                                        fallbackColor: book.coverColor,
+                                        title:         book.title,
+                                        borderRadius:  10)),
+                                      Padding(
+                                        padding: const EdgeInsets
+                                            .fromLTRB(8, 6, 8, 8),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(book.title,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textDark),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis),
+                                            const SizedBox(height: 3),
+                                            Container(
+                                              padding: const EdgeInsets
+                                                  .symmetric(
+                                                  horizontal: 5, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primaryLight,
+                                                borderRadius:
+                                                    BorderRadius.circular(8)),
+                                              child: Text(book.language,
+                                                style: const TextStyle(
+                                                  fontSize: 9,
+                                                  color: AppColors.primaryDark))),
+                                          ])),
+                                    ])));
+                              })),
+                ]),
+    );
+  }
+}
