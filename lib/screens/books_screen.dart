@@ -1,8 +1,6 @@
 // ─────────────────────────────────────────
 // YCT — Publications Screen
-// Static list of YCT publications from the website.
-// PDFs and covers load from Firestore/R2 when available;
-// cards are always shown even without uploads.
+// Books load from Firestore backend (uploaded via admin panel).
 // ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -12,130 +10,6 @@ import '../core/firestore_service.dart';
 import '../widgets/cover_image.dart';
 import 'book_detail_screen.dart';
 
-// Static list sourced from yogaconsciousnesstrust.org/publications
-// Each entry: (id, title, titleTelugu, language, description)
-const _kStaticBooks = [
-  (
-    id: 'yoga_chaitanya_prabha',
-    title: 'Yoga Chaitanya Prabha',
-    titleTelugu: 'యోగ చైతన్య ప్రభ',
-    language: 'Telugu',
-    description: 'Monthly magazine of Yoga Consciousness Trust.'
-  ),
-  (
-    id: 'anushtana_yoga_vedanta',
-    title: 'Anushtana Yoga Vedanta',
-    titleTelugu: 'అనుష్ఠాన యోగ వేదాంత',
-    language: 'Telugu',
-    description: 'Core teachings of Anushtana Yoga philosophy.'
-  ),
-  (
-    id: 'yoga_marga_prabodham',
-    title: 'Yoga Marga Prabodham',
-    titleTelugu: 'యోగ మార్గ ప్రబోధం',
-    language: 'Telugu',
-    description: 'Guidance on the path of Yoga.'
-  ),
-  (
-    id: 'chitta_vritti_nirodha',
-    title: 'Chitta Vritti Nirodha',
-    titleTelugu: 'చిత్త వృత్తి నిరోధ',
-    language: 'Telugu',
-    description: 'On controlling the fluctuations of the mind.'
-  ),
-  (
-    id: 'dhyana_yoga',
-    title: 'Dhyana Yoga',
-    titleTelugu: 'ధ్యాన యోగ',
-    language: 'Telugu',
-    description: 'The yoga of meditation — techniques and philosophy.'
-  ),
-  (
-    id: 'pranayama_rahasya',
-    title: 'Pranayama Rahasya',
-    titleTelugu: 'ప్రాణాయామ రహస్య',
-    language: 'Telugu',
-    description: 'Secrets of breathing practices in Yoga.'
-  ),
-  (
-    id: 'kundalini_shakti',
-    title: 'Kundalini Shakti',
-    titleTelugu: 'కుండలినీ శక్తి',
-    language: 'Telugu',
-    description: 'Awakening of the dormant spiritual energy.'
-  ),
-  (
-    id: 'nadi_shodhana',
-    title: 'Nadi Shodhana',
-    titleTelugu: 'నాడీ శోధన',
-    language: 'Telugu',
-    description: 'Purification of the subtle energy channels.'
-  ),
-  (
-    id: 'samadhi_sopana',
-    title: 'Samadhi Sopana',
-    titleTelugu: 'సమాధి సోపాన',
-    language: 'Telugu',
-    description: 'Steps toward the state of Samadhi.'
-  ),
-  (
-    id: 'asana_vigyan',
-    title: 'Asana Vigyan',
-    titleTelugu: 'ఆసన విజ్ఞాన',
-    language: 'Telugu',
-    description: 'Science of Yogic postures.'
-  ),
-  (
-    id: 'yoga_philosophy',
-    title: 'Yoga Philosophy',
-    titleTelugu: 'యోగ తత్వ శాస్త్రం',
-    language: 'Telugu & English',
-    description: 'Introduction to the philosophical foundations of Yoga.'
-  ),
-  (
-    id: 'guru_charitra',
-    title: 'Guru Charitra',
-    titleTelugu: 'గురు చరిత్ర',
-    language: 'Telugu',
-    description: 'Life and teachings of Yogacharya Sri Raparthi Rama Rao.'
-  ),
-  (
-    id: 'bhakti_yoga',
-    title: 'Bhakti Yoga',
-    titleTelugu: 'భక్తి యోగ',
-    language: 'Telugu',
-    description: 'The path of devotion in Yoga Vedanta.'
-  ),
-  (
-    id: 'karma_yoga',
-    title: 'Karma Yoga',
-    titleTelugu: 'కర్మ యోగ',
-    language: 'Telugu',
-    description: 'Yoga of selfless action.'
-  ),
-  (
-    id: 'jnana_yoga',
-    title: 'Jnana Yoga',
-    titleTelugu: 'జ్ఞాన యోగ',
-    language: 'Telugu',
-    description: 'The path of knowledge and self-inquiry.'
-  ),
-  (
-    id: 'yoga_sutras_commentary',
-    title: 'Yoga Sutras — Commentary',
-    titleTelugu: 'యోగ సూత్రాలు వ్యాఖ్యానం',
-    language: 'Telugu',
-    description: 'Commentary on Patanjali\'s Yoga Sutras by Yogacharya.'
-  ),
-  (
-    id: 'daily_sadhana',
-    title: 'Daily Sadhana',
-    titleTelugu: 'దైనందిన సాధన',
-    language: 'Telugu & English',
-    description: 'A practical guide to daily spiritual practice.'
-  ),
-];
-
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
   @override
@@ -143,52 +17,31 @@ class BooksScreen extends StatefulWidget {
 }
 
 class _BooksScreenState extends State<BooksScreen> {
-  // Firestore books keyed by id — for PDF/cover overlay
-  Map<String, Book> _firestoreBooks = {};
+  List<Book> _books = [];
+  bool _loading = true;
   String _search = '';
 
   @override
   void initState() {
     super.initState();
-    _loadFirestore();
+    _load();
   }
 
-  Future<void> _loadFirestore() async {
+  Future<void> _load() async {
+    setState(() => _loading = true);
     try {
       final books = await FirestoreService.fetchBooks();
-      if (mounted) {
-        setState(() {
-          _firestoreBooks = {for (final b in books) b.id: b};
-        });
-      }
+      if (mounted) setState(() { _books = books; _loading = false; });
     } catch (e, stack) {
       FirebaseCrashlytics.instance.recordError(e, stack, fatal: false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  // Merge static entry with Firestore data if available
-  Book _toBook(dynamic entry) {
-    final fb = _firestoreBooks[entry.id];
-    return Book(
-      id:             entry.id,
-      title:          entry.title,
-      titleTelugu:    entry.titleTelugu,
-      language:       entry.language,
-      description:    entry.description,
-      pdfPath:        fb?.pdfPath        ?? '',
-      pdfUrl:         fb?.pdfUrl         ?? '',
-      coverImagePath: fb?.coverImagePath ?? '',
-      coverImageUrl:  fb?.coverImageUrl  ?? '',
-      isPublished:    fb?.isPublished    ?? true,
-      sortOrder:      fb?.sortOrder      ?? 0,
-    );
-  }
-
   List<Book> get _filtered {
-    final all = _kStaticBooks.map(_toBook).toList();
-    if (_search.isEmpty) return all;
+    if (_search.isEmpty) return _books;
     final q = _search.toLowerCase();
-    return all.where((b) =>
+    return _books.where((b) =>
         b.title.toLowerCase().contains(q) ||
         b.titleTelugu.contains(q) ||
         b.language.toLowerCase().contains(q)).toList();
@@ -205,10 +58,12 @@ class _BooksScreenState extends State<BooksScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadFirestore),
+            onPressed: _load),
         ],
       ),
-      body: Column(children: [
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          : Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: TextField(
@@ -245,8 +100,27 @@ class _BooksScreenState extends State<BooksScreen> {
           ])),
         Expanded(
           child: books.isEmpty
-              ? const Center(child: Text('No results.',
-                  style: TextStyle(color: AppColors.textMid)))
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.menu_book_outlined,
+                          size: 48, color: AppColors.textMuted),
+                      const SizedBox(height: 12),
+                      Text(
+                        _search.isNotEmpty
+                            ? 'No books match "$_search"'
+                            : 'No publications uploaded yet',
+                        style: const TextStyle(
+                            color: AppColors.textMid, fontSize: 14)),
+                      if (_search.isEmpty) ...[
+                        const SizedBox(height: 6),
+                        const Text('Upload books via the admin panel.',
+                            style: TextStyle(
+                                color: AppColors.textMuted, fontSize: 12)),
+                      ],
+                    ],
+                  ))
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
                   gridDelegate:
@@ -258,7 +132,6 @@ class _BooksScreenState extends State<BooksScreen> {
                   itemCount: books.length,
                   itemBuilder: (ctx, i) {
                     final book = books[i];
-                    // Cycle through palette colours for fallback covers
                     final paletteColor = AppColors.coverColors[
                         i % AppColors.coverColors.length];
                     return GestureDetector(
