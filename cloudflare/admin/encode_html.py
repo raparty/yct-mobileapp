@@ -8,15 +8,16 @@ with open('index.html', 'rb') as f:
 with open('worker.js', 'r') as f:
     content = f.read()
 
+pattern = r'(const HTML_B64 = ")[^"]+(";\s*)'
+if not re.search(pattern, content):
+    print('ERROR: HTML_B64 pattern not found in worker.js', file=sys.stderr)
+    sys.exit(1)
+
 new_content = re.sub(
-    r'(const HTML_B64 = ")[^"]+(";\s*)',
+    pattern,
     lambda m: m.group(1) + b64 + m.group(2),
     content
 )
-
-if new_content == content:
-    print('ERROR: HTML_B64 pattern not found in worker.js', file=sys.stderr)
-    sys.exit(1)
 
 with open('worker.js', 'w') as f:
     f.write(new_content)
