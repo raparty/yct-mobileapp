@@ -328,12 +328,22 @@
       </div>
       <div class="row row3">
         <div><label>Type *</label>
-          <select id="prog-type">
-            <option value="shibir">Yoga Shibir</option>
-            <option value="class">Class / Course</option>
-            <option value="special">Special Program</option>
-            <option value="online">Online</option>
-          </select>
+          <input id="prog-type" placeholder="e.g. Special Program, Satsang..." list="prog-type-list" autocomplete="off">
+          <datalist id="prog-type-list">
+            <option value="Class / Course">
+            <option value="Special Program">
+            <option value="Online">
+            <option value="Birthday Celebration">
+            <option value="Navratri Shibir">
+            <option value="Satsang">
+          </datalist>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+            <span onclick="setType(this)" style="cursor:pointer;font-size:11px;background:#e8f5e8;color:#2d5a2d;padding:3px 10px;border-radius:12px;border:1px solid #b8d8b8">📚 Class / Course</span>
+            <span onclick="setType(this)" style="cursor:pointer;font-size:11px;background:#e8f5e8;color:#2d5a2d;padding:3px 10px;border-radius:12px;border:1px solid #b8d8b8">⭐ Special Program</span>
+            <span onclick="setType(this)" style="cursor:pointer;font-size:11px;background:#e8f5e8;color:#2d5a2d;padding:3px 10px;border-radius:12px;border:1px solid #b8d8b8">💻 Online</span>
+            <span onclick="setType(this)" style="cursor:pointer;font-size:11px;background:#e8f5e8;color:#2d5a2d;padding:3px 10px;border-radius:12px;border:1px solid #b8d8b8">🎂 Birthday Celebration</span>
+            <span onclick="setType(this)" style="cursor:pointer;font-size:11px;background:#e8f5e8;color:#2d5a2d;padding:3px 10px;border-radius:12px;border:1px solid #b8d8b8">🕊️ Satsang</span>
+          </div>
         </div>
         <div><label>Start Date *</label><input type="date" id="prog-start"></div>
         <div><label>End Date (optional)</label><input type="date" id="prog-end"></div>
@@ -379,22 +389,23 @@
   <!-- QUOTES -->
   <div class="panel" id="panel-quotes">
     <div class="card">
-      <h3>🪷 Daily Quotes</h3>
-      <p style="font-size:12px;color:#888;margin-bottom:16px">Add inspirational quotes from Gurudev. The app shows one quote per day, cycling through all active quotes.</p>
+      <h3 id="quote-form-title">Add New Quote</h3>
+      <input type="hidden" id="quote-edit-id">
+      <div class="row row1"><div><label>Telugu Quote *</label><textarea id="quote-telugu" rows="3" placeholder="తెలుగులో వ్రాయుము..."></textarea></div></div>
+      <div class="row row1"><div><label>English Quote (optional)</label><textarea id="quote-text" rows="3" placeholder="English translation (optional)..."></textarea></div></div>
       <div class="row">
-        <div><label>Quote (English) *</label><textarea id="qe" rows="3" placeholder="Enter the quote in English…"></textarea></div>
-        <div><label>Quote (Telugu)</label><textarea id="qt" rows="3" placeholder="తెలుగులో నమోదు చేయండి (ఐచ్ఛికం)"></textarea></div>
+        <div><label>Author</label><input id="quote-author" value="యోగాచార్య రాపర్తి రామారావు గారు"></div>
+        <div><label>Source (optional)</label><input id="quote-source" placeholder="e.g. గురు హితోపదేశం"></div>
       </div>
-      <div class="row row1"><div><label>Source / Attribution</label><input id="qs" placeholder="e.g. Yogacharya Sri Raparthi Rama Rao — Yoga Chaitanya Prabha, Jan 2020"></div></div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button id="qsavebtn" class="btn" onclick="saveQuote()" style="width:auto;padding:9px 22px">➕ Add Quote</button>
-        <button id="qcancelbtn" onclick="cancelQuoteEdit()" style="display:none;background:none;border:1px solid #888;color:#555;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px">✕ Cancel Edit</button>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn" id="quote-save-btn" onclick="saveQuote()" style="margin-top:0">💾 Save Quote</button>
+        <button id="quote-cancel-btn" onclick="cancelEditQuote()" style="display:none;background:none;border:1px solid #d3d1c7;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:13px">Cancel</button>
       </div>
-      <div class="res" id="qres"></div>
+      <div class="res" id="quote-res"></div>
     </div>
     <div class="card">
-      <h3>All Quotes</h3>
-      <div id="qlist"><p style="color:#888;font-size:12px">Loading...</p></div>
+      <h3>All Quotes <span style="font-size:11px;font-weight:400;color:#888">(newest first)</span></h3>
+      <div class="clist" id="quote-list"><p style="color:#888;font-size:12px">Loading...</p></div>
     </div>
   </div>
 
@@ -1159,105 +1170,105 @@ window.delFeedback = async (id) => {
 };
 
 // ── QUOTES ────────────────────────────────────────────────────────────────
-let _editingQuoteId=null;
-function _setQuoteEditMode(id,en,te,src){
-  _editingQuoteId=id;
-  document.getElementById('qe').value=en||'';
-  document.getElementById('qt').value=te||'';
-  document.getElementById('qs').value=src||'';
-  document.getElementById('qe').focus();
-  const btn=document.getElementById('qsavebtn');
-  if(btn){btn.textContent='💾 Update Quote';}
-  const cancel=document.getElementById('qcancelbtn');
-  if(cancel){cancel.style.display='inline-block';}
-  const res=document.getElementById('qres');
-  res.style.display='block'; res.className='res ok';
-  res.textContent='✏️ Editing quote — make changes and click Update Quote.';
+function resetQuoteForm() {
+  document.getElementById('quote-edit-id').value    = '';
+  document.getElementById('quote-telugu').value     = '';
+  document.getElementById('quote-text').value       = '';
+  document.getElementById('quote-author').value     = 'యోగాచార్య రాపర్తి రామారావు గారు';
+  document.getElementById('quote-source').value     = '';
+  document.getElementById('quote-form-title').textContent  = 'Add New Quote';
+  document.getElementById('quote-save-btn').textContent    = '💾 Save Quote';
+  document.getElementById('quote-cancel-btn').style.display = 'none';
+  document.getElementById('quote-res').style.display = 'none';
 }
-function _clearQuoteEditMode(){
-  _editingQuoteId=null;
-  document.getElementById('qe').value='';
-  document.getElementById('qt').value='';
-  document.getElementById('qs').value='';
-  const btn=document.getElementById('qsavebtn');
-  if(btn){btn.textContent='➕ Add Quote';}
-  const cancel=document.getElementById('qcancelbtn');
-  if(cancel){cancel.style.display='none';}
-  const res=document.getElementById('qres');
-  res.style.display='none';
-}
-async function loadQuotes(){
-  const el=document.getElementById('qlist');
-  if(!el) return;
-  try{
-    const snap=await getDocs(query(collection(db,'quotes'),orderBy('created_at','desc')));
-    if(snap.empty){el.innerHTML='<p style="color:#888;font-size:12px">No quotes yet.</p>';return;}
-    el.innerHTML=snap.docs.map(d=>{
-      const q=d.data();
-      const active=q.is_active!==false;
-      const enEsc=(q.quote_en||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      const teEsc=(q.quote_te||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      const srcEsc=(q.source||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return `<div style="padding:12px 0;border-bottom:1px solid #f0eee8">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-          <div style="flex:1">
-            <p style="font-size:13px;color:#2c2c2a;line-height:1.6;margin-bottom:4px">"${(q.quote_en||'').replace(/</g,'&lt;')}"</p>
-            ${q.quote_te?`<p style="font-size:12px;color:#5f5e5a;margin-bottom:4px">"${q.quote_te.replace(/</g,'&lt;')}"</p>`:''}
-            ${q.source?`<p style="font-size:10px;color:#888">— ${q.source.replace(/</g,'&lt;')}</p>`:''}
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            <button onclick="_setQuoteEditMode('${d.id}','${enEsc}','${teEsc}','${srcEsc}')" style="background:none;border:1px solid #2d5a2d;color:#2d5a2d;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:11px">Edit</button>
-            <button onclick="toggleQuote('${d.id}',${!active})" style="background:none;border:1px solid ${active?'#e74c3c':'#2d5a2d'};color:${active?'#e74c3c':'#2d5a2d'};padding:3px 10px;border-radius:5px;cursor:pointer;font-size:11px">${active?'Hide':'Show'}</button>
-            <button onclick="delQuote('${d.id}')" class="db">Delete</button>
-          </div>
+async function loadQuotes() {
+  const el = document.getElementById('quote-list');
+  el.innerHTML = '<p style="color:#888;font-size:12px">Loading...</p>';
+  try {
+    const snap = await getDocs(collection(db, 'quotes'));
+    let docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    docs.sort((a, b) => {
+      const ta = a.created_at ? a.created_at.toMillis() : 0;
+      const tb = b.created_at ? b.created_at.toMillis() : 0;
+      return tb - ta;
+    });
+    if (!docs.length) { el.innerHTML = '<p style="color:#888;font-size:12px">No quotes yet. Add one above.</p>'; return; }
+    el.innerHTML = docs.map(d => {
+      const pub = d.is_published !== false;
+      const preview = (d.text_telugu || d.text || '').substring(0, 80);
+      return `<div class="ci" id="quote-row-${d.id}">
+        <div class="cp" style="font-size:18px">🙏</div>
+        <div class="inf">
+          <strong>${preview}${preview.length >= 80 ? '...' : ''}</strong>
+          <span>${d.source || ''} ${d.author ? '— ' + d.author : ''}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;background:${pub ? '#e8f5e8' : '#f5f3ee'};color:${pub ? '#2d5a2d' : '#888'}">${pub ? 'Live' : 'Hidden'}</span>
+          <button style="background:none;border:1px solid #d3d1c7;color:#5f5e5a;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px" onclick="editQuote('${d.id}')">✏️ Edit</button>
+          <button class="db" onclick="toggleQuote('${d.id}', ${pub})">${pub ? 'Hide' : 'Show'}</button>
+          <button class="db" onclick="delQuote('${d.id}')">🗑</button>
         </div>
       </div>`;
     }).join('');
-  }catch(e){el.innerHTML=`<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`;}
+  } catch(e) { el.innerHTML = `<p style="color:#c0392b;font-size:12px">Error: ${e.message}</p>`; }
 }
-window.saveQuote = async()=>{
-  const en=document.getElementById('qe').value.trim();
-  if(!en){alert('English quote is required.');return;}
-  const res=document.getElementById('qres');
-  try{
-    if(_editingQuoteId){
-      await setDoc(doc(db,'quotes',_editingQuoteId),{
-        quote_en: en,
-        quote_te: document.getElementById('qt').value.trim(),
-        source:   document.getElementById('qs').value.trim(),
-      },{merge:true});
-      res.style.display='block'; res.className='res ok';
-      res.textContent='✅ Quote updated!';
-      _clearQuoteEditMode();
+window.saveQuote = async () => {
+  const telugu = document.getElementById('quote-telugu').value.trim();
+  if (!telugu) { showRes('quote-res', false, 'Telugu quote is required'); return; }
+  const editId = document.getElementById('quote-edit-id').value;
+  const btn = document.getElementById('quote-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const data = {
+    text_telugu:  telugu,
+    text:         document.getElementById('quote-text').value.trim(),
+    author:       document.getElementById('quote-author').value.trim(),
+    source:       document.getElementById('quote-source').value.trim(),
+    is_published: true,
+  };
+  try {
+    if (editId) {
+      await setDoc(doc(db, 'quotes', editId), { ...data, updated_at: serverTimestamp() }, { merge: true });
+      showRes('quote-res', true, 'Quote updated!');
     } else {
-      await addDoc(collection(db,'quotes'),{
-        quote_en: en,
-        quote_te: document.getElementById('qt').value.trim(),
-        source:   document.getElementById('qs').value.trim(),
-        is_active: true,
-        created_at: serverTimestamp(),
-      });
-      document.getElementById('qe').value='';
-      document.getElementById('qt').value='';
-      document.getElementById('qs').value='';
-      res.style.display='block'; res.className='res ok';
-      res.textContent='✅ Quote added!';
+      data.created_at = serverTimestamp();
+      await addDoc(collection(db, 'quotes'), data);
+      showRes('quote-res', true, 'Quote added and live in app!');
     }
+    resetQuoteForm();
     loadQuotes();
-  }catch(e){
-    res.style.display='block'; res.className='res er';
-    res.textContent='❌ '+e.message;
-  }
+  } catch(e) { showRes('quote-res', false, e.message); }
+  btn.disabled = false; btn.textContent = '💾 Save Quote';
 };
-window.cancelQuoteEdit=()=>{ _clearQuoteEditMode(); };
-window.toggleQuote = async(id,active)=>{
-  await setDoc(doc(db,'quotes',id),{is_active:active},{merge:true});
+window.editQuote = async (id) => {
+  try {
+    const snap = await getDoc(doc(db, 'quotes', id));
+    if (!snap.exists()) return;
+    const d = snap.data();
+    document.getElementById('quote-edit-id').value    = id;
+    document.getElementById('quote-telugu').value     = d.text_telugu || '';
+    document.getElementById('quote-text').value       = d.text || '';
+    document.getElementById('quote-author').value     = d.author || '';
+    document.getElementById('quote-source').value     = d.source || '';
+    document.getElementById('quote-form-title').textContent  = 'Edit Quote';
+    document.getElementById('quote-save-btn').textContent    = '💾 Update Quote';
+    document.getElementById('quote-cancel-btn').style.display = 'inline-block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch(e) { alert('Error loading quote: ' + e.message); }
+};
+window.cancelEditQuote = () => resetQuoteForm();
+window.toggleQuote = async (id, currentlyPublished) => {
+  await setDoc(doc(db, 'quotes', id), { is_published: !currentlyPublished }, { merge: true });
   loadQuotes();
 };
-window.delQuote = async(id)=>{
-  if(!confirm('Delete this quote?')) return;
-  await deleteDoc(doc(db,'quotes',id));
+window.delQuote = async (id) => {
+  if (!confirm('Delete this quote? This cannot be undone.')) return;
+  await deleteDoc(doc(db, 'quotes', id));
   loadQuotes();
+};
+window.setType = (el) => {
+  const text = el.textContent.trim();
+  const val = text.replace(/^[^a-zA-Zఀ-౿]+/, '').trim();
+  document.getElementById('prog-type').value = val;
 };
 
 // ── SHARED HELPER ─────────────────────────────────────────────────────────
