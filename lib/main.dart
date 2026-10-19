@@ -35,8 +35,21 @@ void main() async {
       ),
     );
 
-    FlutterError.onError =
-        FirebaseCrashlytics.instance.recordFlutterFatalError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      // Image/asset loading errors are non-fatal — don't crash the app.
+      final summary = details.exceptionAsString();
+      final isImageError = summary.contains('HttpException') ||
+          summary.contains('NetworkImageLoadException') ||
+          summary.contains('404') ||
+          (details.library != null &&
+              details.library!.contains('image resource service'));
+      if (isImageError) {
+        FirebaseCrashlytics.instance.recordError(
+            details.exception, details.stack, fatal: false);
+      } else {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+      }
+    };
     PlatformDispatcher.instance.onError = (error, stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       return true;
@@ -44,8 +57,9 @@ void main() async {
 
     FirestoreService.init();
 
+    // statusBarColor removed — deprecated on Android 15+ and causes
+    // a lint warning; icon brightness is still set for light-on-dark bars.
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: AppColors.primaryDark,
       statusBarIconBrightness: Brightness.light,
     ));
 

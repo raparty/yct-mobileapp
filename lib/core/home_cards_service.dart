@@ -38,18 +38,19 @@ class HomeCardsService {
   static List<HomeCard>? _cache;
 
   // Default cards — shown if Firestore unavailable
+  // Order: Gurudev first, Publications second (per UX decision Oct 2026)
   static List<HomeCard> defaults() => [
-    HomeCard(
-      id: 'publications',
-      title: 'Publications',
-      subtitle: 'Books & Magazines',
-      imageUrl: '${R2Config.baseUrl}/images/cards/publications.jpg',
-      enabled: true),
     HomeCard(
       id: 'gurudev',
       title: 'About Gurudev',
       subtitle: 'Life & Teachings',
       imageUrl: '${R2Config.baseUrl}/images/cards/gurudev.jpg',
+      enabled: true),
+    HomeCard(
+      id: 'publications',
+      title: 'Publications',
+      subtitle: 'Books & Magazines',
+      imageUrl: '${R2Config.baseUrl}/images/cards/publications.jpg',
       enabled: true),
     HomeCard(
       id: 'programs',
@@ -76,7 +77,7 @@ class HomeCardsService {
       }
       final data = doc.data()!;
       final cards = <HomeCard>[];
-      for (final id in ['publications','gurudev','programs','centers']) {
+      for (final id in ['gurudev','publications','programs','centers']) {
         if (data[id] is Map) {
           cards.add(HomeCard.fromFirestore(id, Map<String,dynamic>.from(data[id])));
         }

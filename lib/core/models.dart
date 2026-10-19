@@ -103,12 +103,16 @@ class AudioTrack {
   final String id, title, titleTelugu, topic, audioPath, audioUrl, fileName;
   final int year, durationMins;
   final bool isPublished;
+  final bool isPreview;          // true = staging; only whitelisted users see it
+  final DateTime? uploadedAt;   // for "latest first" sort + "New" badge
 
   const AudioTrack({
     required this.id, required this.title, required this.titleTelugu,
     required this.topic, required this.audioPath, required this.audioUrl,
     required this.fileName, required this.year, required this.durationMins,
     required this.isPublished,
+    this.isPreview  = false,
+    this.uploadedAt,
   });
 
   factory AudioTrack.fromFirestore(DocumentSnapshot doc) {
@@ -125,6 +129,8 @@ class AudioTrack {
       year:         (d['year']          as num?)?.toInt() ?? 0,
       durationMins: (d['duration_mins'] as num?)?.toInt() ?? 0,
       isPublished:  d['is_published']   as bool? ?? true,
+      isPreview:    d['is_preview']     as bool? ?? false,
+      uploadedAt:   (d['uploaded_at']   as Timestamp?)?.toDate(),
     );
   }
 
@@ -132,6 +138,12 @@ class AudioTrack {
     if (durationMins == 0) return '';
     final h = durationMins ~/ 60; final m = durationMins % 60;
     return h > 0 ? '${h}h ${m}m' : '$m min';
+  }
+
+  /// True if this track was uploaded within the last 14 days.
+  bool get isNew {
+    if (uploadedAt == null) return false;
+    return DateTime.now().difference(uploadedAt!).inDays <= 14;
   }
 }
 

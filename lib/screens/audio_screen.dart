@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart' hide AVAudioSessionCategory, AVAudioSessionCategoryOptions, AVAudioSessionMode, AVAudioSessionRouteSharingPolicy, AVAudioSessionSetActiveOptions;
 import 'package:audio_session/audio_session.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
@@ -96,10 +97,24 @@ class _AudioScreenState extends State<AudioScreen> {
     });
   }
 
+  /// Returns the current user's email for preview-whitelist checks.
+  /// Returns null if not signed in or unavailable.
+  Future<String?> _getUserEmail() async {
+    try {
+      // FirebaseAuth is already a dependency of the project
+      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      return user?.email;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final tracks = await FirestoreService.fetchAudio();
+      // Pass user email so preview-whitelisted users see staged tracks
+      final userEmail = await _getUserEmail();
+      final tracks = await FirestoreService.fetchAudio(userEmail: userEmail);
       if (mounted) setState(() {
         _tracks   = tracks;
         _filtered = tracks;
@@ -264,6 +279,12 @@ class _AudioScreenState extends State<AudioScreen> {
   }
 
   Widget _miniPlayer() {
+    // Null-guard: widget is only shown when _current != null, but
+    // capture it locally so the compiler sees the non-null type and
+    // eliminates the risk of a race-condition crash.
+    final current = _current;
+    if (current == null) return const SizedBox.shrink();
+
     final isPlaying = _state == PlayerState.playing;
     final totalMs = _dur.inMilliseconds.toDouble();
     final posMs   = _pos.inMilliseconds.toDouble();
@@ -285,7 +306,7 @@ class _AudioScreenState extends State<AudioScreen> {
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_current!.title,
+              Text(current.title,
                 style: const TextStyle(color: Colors.white,
                     fontSize: 12, fontWeight: FontWeight.w500),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -314,7 +335,7 @@ class _AudioScreenState extends State<AudioScreen> {
                     ? Icons.pause_circle_filled
                     : Icons.play_circle_filled,
                     color: Colors.white, size: 36),
-            onPressed: _buffering ? null : () => _play(_current!),
+            onPressed: _buffering ? null : () => _play(current),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints()),
           const SizedBox(width: 2),
@@ -409,9 +430,37 @@ class _Tile extends StatelessWidget {
               Text(track.titleTelugu,
                 style: const TextStyle(
                     fontSize: 11, color: AppColors.textMid)),
-            if (track.topic.isNotEmpty || track.formattedDuration.isNotEmpty)
+            if (track.topic.isNotEmpty || track.formattedDuration.isNotEmpty ||
+                track.isNew || track.isPreview)
               const SizedBox(height: 4),
             Row(children: [
+              if (track.isNew) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.saffron,
+                    borderRadius: BorderRadius.circular(10)),
+                  child: const Text('New',
+                    style: TextStyle(
+                        fontSize: 9, color: Colors.white,
+                        fontWeight: FontWeight.w700))),
+                const SizedBox(width: 6),
+              ],
+              if (track.isPreview) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.deepPurple.shade200)),
+                  child: Text('Preview',
+                    style: TextStyle(
+                        fontSize: 9, color: Colors.deepPurple.shade700,
+                        fontWeight: FontWeight.w600))),
+                const SizedBox(width: 6),
+              ],
               if (track.topic.isNotEmpty) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(

@@ -17,10 +17,17 @@ class RemoteConfigService {
     try {
       await _rc.setDefaults(_defaults);
       await _rc.setConfigSettings(RemoteConfigSettings(
-        fetchTimeout:         const Duration(seconds: 10),
+        fetchTimeout:         const Duration(seconds: 3),   // was 10 — prevents ANR
         minimumFetchInterval: const Duration(hours: 1),
       ));
-      await _rc.fetchAndActivate();
+      // Activate the values cached from the last launch IMMEDIATELY
+      // (no network needed), so the app can open right away.
+      await _rc.activate();
+      // Then try to fetch fresh values in the background; if the
+      // network is slow or unavailable the app is already running.
+      _rc.fetchAndActivate().catchError((e, stack) {
+        FirebaseCrashlytics.instance.recordError(e, stack, fatal: false);
+      });
     } catch (e, stack) {
       FirebaseCrashlytics.instance.recordError(e, stack, fatal: false);
     }
