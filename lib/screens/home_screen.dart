@@ -79,7 +79,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) setState(() {
         _magazines = (results[0] as List<Magazine>).take(4).toList();
         _quote     = results[1] as DailyQuote;
-        _cards     = (results[2] as List<HomeCard>).where((c) => c.enabled).toList();
+        // Merge Firestore cards with defaults — ensures all 5 IDs are present
+        // even if Firestore doc was created before 'magazines' was added.
+        final firestoreCards = (results[2] as List<HomeCard>);
+        final defaults = HomeCardsService.defaults();
+        final firestoreIds = firestoreCards.map((c) => c.id).toSet();
+        final merged = [
+          ...firestoreCards,
+          ...defaults.where((d) => !firestoreIds.contains(d.id)),
+        ];
+        // Preserve canonical order
+        final order = ['gurudev', 'publications', 'magazines', 'programs', 'centers'];
+        merged.sort((a, b) =>
+            order.indexOf(a.id).compareTo(order.indexOf(b.id)));
+        _cards = merged.where((c) => c.enabled).toList();
         final allPrograms = results[3] as List<YearlyProgram>;
         _programs  = allPrograms.where((p) => p.isUpcoming).take(3).toList();
         _loading   = false;
@@ -244,13 +257,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       rows.add(isLast
           // Last odd card: full-width, shorter height
           ? SizedBox(
-              height: 110,
+              height: 140,
               child: _PhotoCard(
                 card: cards[i],
                 onTap: () => _onCardTap(context, cards[i])))
           // Pair of cards at fixed height
           : SizedBox(
-              height: 150,
+              height: 200,
               child: Row(children: [
                 Expanded(child: _PhotoCard(
                   card: cards[i],
@@ -280,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               style: TextStyle(color: AppColors.textMid, fontSize: 12)),
           ]))
       : SizedBox(
-          height: 160,
+          height: 175,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: _magazines.length + 1,
@@ -312,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 onTap: () => Navigator.push(ctx,
                   MaterialPageRoute(builder: (_) => IssueDetailScreen(magazine: mag))),
                 child: SizedBox(width: 100, child: Column(children: [
-                  SizedBox(height: 120, width: 100,
+                  SizedBox(height: 130, width: 100,
                     child: MagazineCover(
                       imageUrl:      mag.coverImageUrl,
                       fallbackColor: mag.coverColor,
